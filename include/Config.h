@@ -1,5 +1,5 @@
 // Firmware revisions
-#define FIRMW "ESP-3.0"
+#define FIRMW "ESP-3.3"
 #define TFT_FIRMW "TFT-2.0"						   
 
 #define DEBUG_LEVEL DBG_INFO     // Possible levels : NONE/ERROR/WARNING/INFO/DEBUG/VERBOSE
@@ -7,13 +7,24 @@
 //Version of config stored in EEPROM
 //Random value. Change this value (to any other value) to revert the config to default values
 #define CONFIG_VERSION 50
+
 // WiFi credentials
 #define WIFI_NETWORK "YOUR_WIFI_NETWORK_ID"
 #define WIFI_PASSWORD "YOUR_WIFI_NETWORK_PWD"
 #define OTA_PWDHASH   "Your_OTA_password_hash"
+#ifdef DEVT
+  #define HOSTNAME "PoolMaster_Dev"
+#else
+  #define HOSTNAME "PoolMaster"
+#endif 
 
-//IFTTT key to trigger event
-#define IFTTT_key "/trigger/PoolMaster/with/key/Your_IFTTT_Key"
+// Mail parameters and credentials
+#define SMTP_HOST "your smtp server"
+#define SMTP_PORT 587  // check the port number
+#define AUTHOR_EMAIL "your email address"
+#define AUTHOR_LOGIN "your user name"
+#define AUTHOR_PASSWORD "your password"
+#define RECIPIENT_EMAIL "your recipient email address"
 
 // PID Directions (either DIRECT or REVERSE depending on Ph/Orp correction vs water properties)
 #define PhPID_DIRECTION REVERSE
@@ -39,6 +50,13 @@
 #define I2C_SDA			21
 #define I2C_SCL			22
 
+//Type of pH and Orp sensors acquisition :
+//INT_ADS1115 : single ended signal with internal ADS1115 ADC (default)
+//EXT_ADS1115 : differential signal with external ADS1115 ADC (Loulou74 board)
+#define EXT_ADS1115
+#define INT_ADS1115_ADDR ADS1115ADDRESS
+#define EXT_ADS1115_ADDR ADS1115ADDRESS+1 // or +2 or +3 depending on board setup
+
 // Buzzer
 #define BUZZER           2
 
@@ -53,16 +71,17 @@
 //12bits (0,06°C) temperature sensors resolution
 #define TEMPERATURE_RESOLUTION 12
 
-
 //MQTT stuff including local broker/server IP address, login and pwd
 //------------------------------------------------------------------
-//interval (in miilisec) between MQTT publishes of measurement data
+
+//interval (in millisec) between MQTT publishement of measurement data
 #define PUBLISHINTERVAL 30000
 
 #define MQTT_SERVER_IP IPAddress(000, 000, 000, 000)
 #define MQTT_SERVER_PORT 1883
 
-//#define MQTT_LOGIN                           // uncomment if MQTT broker needs login/pwd
+// Uncomment if MQTT broker needs login/pwd
+//#define MQTT_LOGIN 				
 //#define MQTT_SERVER_ID    "ESP32Pool"		   // MQTT server ID
 //#define MQTT_SERVER_LOGIN "Your_Login"
 //#define MQTT_SERVER_PWD   "Your_Pwd" 				

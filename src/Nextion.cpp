@@ -92,6 +92,14 @@ void UpdateTFT()
     if(TFT_Automode != storage.AutoMode) 
     { myNex.writeNum(F("page0.vaMode.val"),storage.AutoMode);
       TFT_Automode = storage.AutoMode;}
+    if(TFT_Winter != storage.WinterMode) 
+    { myNex.writeNum(F("page1.vaR2.val"),storage.WinterMode);
+      TFT_Winter = storage.WinterMode;}  
+    myNex.writeNum(F("page0.vapHLevel.val"),PhPump.TankLevel() ? 0:1);      
+    myNex.writeNum(F("page0.vaChlLevel.val"),ChlPump.TankLevel() ? 0:1);
+    myNex.writeNum(F("page0.vaPSIErr.val"),PSIError ? 1:0);
+    myNex.writeNum(F("page0.vaChlUTErr.val"),ChlPump.UpTimeError ? 1:0);
+    myNex.writeNum(F("page0.vapHUTErr.val"),PhPump.UpTimeError ? 1:0);  
 
     if(CurrentPage==0)
     {
@@ -115,11 +123,7 @@ void UpdateTFT()
       myNex.writeStr(F("page0.vapHTk.txt"), temp);
       temp = String((int)round(ChlPump.GetTankFill())) + (char)37 + F(" / ") + String(float(ChlPump.UpTime)/1000./60., 1) + F("min");
       myNex.writeStr(F("page0.vaChlTk.txt"), temp);
-      myNex.writeNum(F("page0.vapHLevel.val"),PhPump.TankLevel() ? 0:1);      
-      myNex.writeNum(F("page0.vaChlLevel.val"),ChlPump.TankLevel() ? 0:1);
-      myNex.writeNum(F("page0.vaPSIErr.val"),PSIError ? 1:0);
-      myNex.writeNum(F("page0.vaChlUTErr.val"),ChlPump.UpTimeError ? 1:0);
-      myNex.writeNum(F("page0.vapHUTErr.val"),PhPump.UpTimeError ? 1:0);
+
       if(abs(storage.PhValue-storage.Ph_SetPoint) <= 0.1) 
         myNex.writeNum("page0.vapHErr.val",0);
       if(abs(storage.PhValue-storage.Ph_SetPoint) > 0.1 && abs(storage.PhValue-storage.Ph_SetPoint) <= 0.2)  
@@ -147,11 +151,13 @@ void UpdateTFT()
         TFT_R0 = !TFT_R0;}
       if(digitalRead(RELAY_R1) != TFT_R1)
       { myNex.writeNum(F("page1.vaR1.val"), TFT_R1 ? 1:0);
-        TFT_R1 = !TFT_R1;}
-      if(TFT_Winter != storage.WinterMode) 
-      { myNex.writeNum(F("page1.vaR2.val"),storage.WinterMode);
-      TFT_Winter = storage.WinterMode;}  
-    }        
+        TFT_R1 = !TFT_R1;}  
+    } 
+
+    if(CurrentPage == 2) {
+      myNex.writeStr(F("page0.vapH.txt"), String(storage.PhValue, 2));
+      myNex.writeStr(F("page0.vaOrp.txt"), String(storage.OrpValue, 0));
+    }       
 
     if(CurrentPage == 3) 
     {  UpdateWiFi(WiFi.status() == WL_CONNECTED);
@@ -160,7 +166,7 @@ void UpdateTFT()
     }  
 
     //put TFT in sleep mode with wake up on touch and force page 0 load to trigger an event
-    if((unsigned long)(millis() - LastAction) >= TFT_SLEEP && TFT_ON && CurrentPage != 2)
+    if((unsigned long)(millis() - LastAction) >= TFT_SLEEP && TFT_ON && CurrentPage !=2)
     {
       myNex.writeStr("thup=1");
       myNex.writeStr("wup=0");
