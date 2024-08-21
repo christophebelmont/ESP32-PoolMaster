@@ -1,10 +1,11 @@
-symlink://../../libraries/ADS1115
-Arduino_DebugUtils @ 1.1.0
+milesburton/DallasTemperature @ 3.9.1
+Arduino_DebugUtils @ 1.4.0
+me-no-dev/AsyncTCP @ 1.1.1
+mobizt/ESP Mail Client @ ^3.4.19
+robtillaart/RunningMedian @ 0.3.9
 paulstoffregen/Time @ 1.6
-milesburton/DallasTemperature @ ^3.9.1
-robtillaart/RunningMedian @ ^0.2.1
-seithan/Easy Nextion Library @ ^1.0.5
-me-no-dev/AsyncTCP @ ^1.1.1
-br3ttb/PID @ ^1.2.1
-bblanchon/ArduinoJson @ ^6.17.2
-marvinroger/AsyncMqttClient @ ^0.8.2
+marvinroger/AsyncMqttClient @ 0.8.2
+br3ttb/PID @ 1.2.1
+symlink://../../libraries/ADS1115
+seithan/Easy Nextion Library @ 1.0.6
+bblanchon/ArduinoJson @ 6.17.2
