@@ -52,13 +52,13 @@
 #define PH_LEVEL        36   //                - " -
 
 //One wire bus for the air/water temperature measurement
-#define ONE_WIRE_BUS_A  18
-#define ONE_WIRE_BUS_W  19
+#define ONE_WIRE_BUS_A  14
+#define ONE_WIRE_BUS_W  14
 
 //I2C bus for analog measurement with ADS1115 of pH, ORP and water pressure 
 //and status LED through PCF8574A 
-#define I2C_SDA			21
-#define I2C_SCL			22
+#define I2C_SDA			4
+#define I2C_SCL			5
 
 //Type of pH and Orp sensors acquisition :
 //INT_ADS1115 : single ended signal with internal ADS1115 ADC (default)
@@ -72,7 +72,7 @@
 
 // PCF8574 model could be:
 //  1 - PCF8574AN
-#define PCF8574_ADDR  0x20
+#define PCF8574_ADDR  0x24
 
 #define WDT_TIMEOUT     10
 
