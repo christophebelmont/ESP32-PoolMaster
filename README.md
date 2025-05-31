@@ -59,8 +59,7 @@ Finally code and PCB are made with high flexibility to precisely tailor the feat
 
 ### Work in Progress
 Below the main features to be implemented:
-- As of today, the Salt Water Chlorine Generator mode switches the chlorinator ON when Orp reaches 90% of setpoint and OFF when it reaches 105%. Unless pH and Orp regulation with pump there is not PID style logic. This would need evolving with possibly a longer PID window value to avoid switching chlorinator ON/OFF too frequently.
-- Ability to configure all the setpoints, PID Windows, Pump Flow Rates, PSI Thresholds on the Nextion (not much work)
+- currently developping support for higher end 800x480 intelligent series screen from Nextion. for better looking and interface and invreased readability.
 
 ### Hardware
 A dedicated board has been designed to host all components. There are 8 LEDs at the bottom to display status, warnings and alarms.
