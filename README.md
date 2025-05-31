@@ -59,7 +59,7 @@ Finally code and PCB are made with high flexibility to precisely tailor the feat
 
 ### Work in Progress
 Below the main features to be implemented:
-- currently developping support for higher end 800x480 intelligent series screen from Nextion. for better looking and interface and invreased readability.
+- currently developping support for higher end 800x480 intelligent series screen from Nextion. for better looking interface and increased readability.
 
 ### Hardware
 A dedicated board has been designed to host all components. There are 8 LEDs at the bottom to display status, warnings and alarms.
