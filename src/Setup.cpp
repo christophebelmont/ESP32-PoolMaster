@@ -513,15 +513,15 @@ void setup()
     app_cpu
   );
 
+#ifdef _EXTENSIONS_
+  ExtensionsInit();
+#endif
+
 #ifdef ELEGANT_OTA
 // ELEGANTOTA Configuration
   //server.on("/", []() {
   //  server.send(200, "text/plain", "NA");
   //});
-
-#ifdef _EXTENSIONS_
-  ExtensionsInit();
-#endif
 
   ElegantOTA.begin(&server);    // Start ElegantOTA
   ElegantOTA.onStart(onOTAStart);
