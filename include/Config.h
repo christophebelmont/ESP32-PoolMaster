@@ -21,11 +21,11 @@
 #define WIFI_SCAN_INTERVAL  10000
 
 #define OTA_PWDHASH   "<OTA_PASS>"
-#ifdef DEVT
-  #define HOSTNAME "PoolMaster_Dev"
-#else
-  #define HOSTNAME "MonjoliVexin"
-#endif 
+//#ifdef DEVT
+//  #define HOSTNAME "PoolMaster_Dev"
+//#else
+//  #define HOSTNAME "MonjoliVexin"
+//#endif 
 
 // Mail parameters and credentials
 //#define SMTP  // define to activate SMTP email notifications
@@ -185,3 +185,7 @@
                                     // the sensor value is computed from the output of the PID 
                                     // loop to reach linearly the theorical value produced by this
                                     // output after one hour
+// *************************
+// Addons on Extension Ports
+#include "Extension_Ports.h"      // Comment this line when no extensions
+// *************************
