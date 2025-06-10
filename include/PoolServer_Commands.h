@@ -24,7 +24,7 @@ extern void SetOrpPID(bool);
 extern void mqttInit(void);
 extern void mqttDisconnect(void);
 
-extern std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> server_handlers;
+extern const std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> server_handlers;
 
 void p_Buzzer(StaticJsonDocument<250>  &_jsonsdoc);
 void p_Lang(StaticJsonDocument<250>  &_jsonsdoc);

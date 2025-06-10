@@ -67,9 +67,58 @@ class Pump : public Relay {
     void ClearErrors();
 
     void SetInterlock(PIN*);
+    void SetInterlock(uint8_t);
     uint8_t GetInterlockId(void);
-    bool CheckInterlock();  // Return true if interlock pump running
+    bool CheckInterlock();  // Return true if interlock pump running (use only the pointer to the interlock pump so need to call InitInterlock before)
     bool IsRelay(void);
+
+    void SavePreferences(Preferences& prefs) override {
+        Relay::SavePreferences(prefs);
+
+        char key[15];
+
+        snprintf(key, sizeof(key), "d%d_fr", GetPinId());  // "device_X_flowrate"
+        prefs.putDouble(key, flowrate);
+
+        snprintf(key, sizeof(key), "d%d_tv", GetPinId());  // "device_X_tankvolume"
+        prefs.putDouble(key, tankvolume);
+
+        snprintf(key, sizeof(key), "d%d_tf", GetPinId());  // "device_X_tankfill"
+        prefs.putDouble(key, tankfill);
+
+        snprintf(key, sizeof(key), "d%d_tl", GetPinId());  // "device_X_tanklevelpin"
+        prefs.putUChar(key, tank_level_pin);
+
+        snprintf(key, sizeof(key), "d%d_il", GetPinId());  // "device_X_interlockid"
+        prefs.putUChar(key, interlock_pin_id);
+
+        snprintf(key, sizeof(key), "d%d_mu", GetPinId());  // "device_X_interlockid"
+        prefs.putULong(key, MaxUpTime/1000);
+      }
+
+    void LoadPreferences(Preferences& prefs) override {
+        Relay::LoadPreferences(prefs);
+
+        char key[15];
+
+        snprintf(key, sizeof(key), "d%d_fr", GetPinId());
+        flowrate = prefs.getDouble(key, flowrate);
+
+        snprintf(key, sizeof(key), "d%d_tv", GetPinId());
+        tankvolume = prefs.getDouble(key, tankvolume);
+
+        snprintf(key, sizeof(key), "d%d_tf", GetPinId());
+        tankfill = prefs.getDouble(key, tankfill);
+  
+        snprintf(key, sizeof(key), "d%d_tl", GetPinId());
+        tank_level_pin = prefs.getUChar(key, tankfill);
+
+        snprintf(key, sizeof(key), "d%d_il", GetPinId());
+        interlock_pin_id = prefs.getUChar(key, interlock_pin_id);
+
+        snprintf(key, sizeof(key), "d%d_mu", GetPinId());
+        MaxUpTime = prefs.getULong(key, MaxUpTime);
+      }
 
     unsigned long UpTime        = 0;
     unsigned long MaxUpTime     = DEFAULTMAXUPTIME; // Uptime for a run
@@ -77,12 +126,12 @@ class Pump : public Relay {
     bool          UpTimeError   = false;
     unsigned long StartTime = 0;
     unsigned long StopTime      = 0; 
-
+    
   private:
     PIN*  interlock_pump_ = nullptr; // Interlock can be passed 
+    uint8_t interlock_pin_id = NO_INTERLOCK; // Used temporarily to store the interlock pin id but converted in pointer by InitInterlock function
     unsigned long LastLoopMillis     = 0;
     uint8_t tank_level_pin;
-    double flowrate, tankvolume, tankfill;
-    //uint8_t interlockpin;
+    double flowrate = 1.5, tankvolume = 20., tankfill = 100.; // Flowrate in L/h, tank volume in Liters, tank fill in %
 };
 #endif

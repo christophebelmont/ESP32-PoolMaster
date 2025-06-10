@@ -2,7 +2,7 @@
 #include "PoolServer_Commands.h"
 
 // Map key -> handler function
-std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> server_handlers = {
+const std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> server_handlers = {
     {"Buzzer",          p_Buzzer         },
     {"Lang_Locale",     p_Lang           },
     {"TempExt",         p_TempExt        },
@@ -259,20 +259,21 @@ void p_WSetPoint(StaticJsonDocument<250>  &_jsonsdoc) {
 }
 //"pHTank" command which is called when the pH tank is changed or refilled
 //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
+
 void p_pHTank(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_PH].tank_vol = (double)_jsonsdoc[F("pHTank")][0];
-    storage.PumpsConfig[PUMP_PH].tank_fill = (double)_jsonsdoc[F("pHTank")][1];
-    PhPump.SetTankVolume(storage.PumpsConfig[PUMP_PH].tank_vol);
-    PhPump.SetTankFill(storage.PumpsConfig[PUMP_PH].tank_fill);
-    savePumpsConf();
+    //storage.PumpsConfig[PUMP_PH].tank_vol = (double)_jsonsdoc[F("pHTank")][0];
+    //storage.PumpsConfig[PUMP_PH].tank_fill = (double)_jsonsdoc[F("pHTank")][1];
+    PhPump.SetTankVolume((double)_jsonsdoc[F("pHTank")][0]);
+    PhPump.SetTankFill((double)_jsonsdoc[F("pHTank")][1]);
+    PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
     PublishSettings();
 }
 void p_ChlTank(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_CHL].tank_vol = (double)_jsonsdoc[F("ChlTank")][0];
-    storage.PumpsConfig[PUMP_CHL].tank_fill = (double)_jsonsdoc[F("ChlTank")][1];
-    ChlPump.SetTankVolume(storage.PumpsConfig[PUMP_CHL].tank_vol);
-    ChlPump.SetTankFill(storage.PumpsConfig[PUMP_CHL].tank_fill);
-    savePumpsConf();
+    //storage.PumpsConfig[PUMP_CHL].tank_vol = (double)_jsonsdoc[F("ChlTank")][0];
+    //storage.PumpsConfig[PUMP_CHL].tank_fill = (double)_jsonsdoc[F("ChlTank")][1];
+    ChlPump.SetTankVolume((double)_jsonsdoc[F("ChlTank")][0]);
+    ChlPump.SetTankFill((double)_jsonsdoc[F("ChlTank")][1]);
+    PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
     PublishSettings();
 }
 void p_WTempLow(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -281,25 +282,30 @@ void p_WTempLow(StaticJsonDocument<250>  &_jsonsdoc) {
     PublishSettings();
 }
 void p_PumpsMaxUp(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_PH].pump_max_uptime = (unsigned int)_jsonsdoc[F("PumpsMaxUp")];
-    storage.PumpsConfig[PUMP_CHL].pump_max_uptime = (unsigned int)_jsonsdoc[F("PumpsMaxUp")];
-    savePumpsConf();
+    //storage.PumpsConfig[PUMP_PH].pump_max_uptime = (unsigned int)_jsonsdoc[F("PumpsMaxUp")];
+    //storage.PumpsConfig[PUMP_CHL].pump_max_uptime = (unsigned int)_jsonsdoc[F("PumpsMaxUp")];
+    PhPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpsMaxUp")]*1000);
+    ChlPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpsMaxUp")]*1000);
+    PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
+    PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
+//    savePumpsConf();
 
     // Apply changes
-    PhPump.SetMaxUpTime(storage.PumpsConfig[PUMP_PH].pump_max_uptime * 1000);
-    ChlPump.SetMaxUpTime(storage.PumpsConfig[PUMP_CHL].pump_max_uptime * 1000);
+  //  PhPump.SetMaxUpTime(storage.PumpsConfig[PUMP_PH].pump_max_uptime * 1000);
+    //ChlPump.SetMaxUpTime(storage.PumpsConfig[PUMP_CHL].pump_max_uptime * 1000);
     PublishSettings();
 }
 void p_FillMinUpTime(StaticJsonDocument<250>  &_jsonsdoc) {
     storage.PumpsConfig[PUMP_FILL].pump_min_uptime = (unsigned int)_jsonsdoc[F("FillMinUpTime")] * 60;
     // MinUptime is not a member of pump class, this is used in main logic to prevent pump from stopping too fast
-    savePumpsConf();
+    //savePumpsConf();
     PublishSettings();
 }
 void p_FillMaxUpTime(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_FILL].pump_max_uptime = (unsigned int)_jsonsdoc[F("FillMaxUpTime")] * 60; 
-    FillingPump.SetMaxUpTime(storage.PumpsConfig[PUMP_FILL].pump_max_uptime * 1000);
-    savePumpsConf();
+    //storage.PumpsConfig[PUMP_FILL].pump_max_uptime = (unsigned int)_jsonsdoc[F("FillMaxUpTime")] * 60; 
+    FillingPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("FillMaxUpTime")] * 60 * 1000);
+    PoolDeviceManager.SavePreferences(DEVICE_FILLING_PUMP);
+    //savePumpsConf();
     PublishSettings();
 }
 void p_OrpPIDParams(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -370,15 +376,17 @@ void p_PSILow(StaticJsonDocument<250>  &_jsonsdoc) {
     PublishSettings();
 }
 void p_pHPumpFR(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_PH].pump_flow_rate = (double)_jsonsdoc[F("pHPumpFR")];
-    savePumpsConf();
-    PhPump.SetFlowRate(storage.PumpsConfig[PUMP_PH].pump_flow_rate * 1000);
+    //storage.PumpsConfig[PUMP_PH].pump_flow_rate = (double)_jsonsdoc[F("pHPumpFR")];
+    //savePumpsConf();
+    PhPump.SetFlowRate((double)_jsonsdoc[F("pHPumpFR")] * 1000);
+    PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
     PublishSettings();
 }
 void p_ChlPumpFR(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_CHL].pump_flow_rate = (double)_jsonsdoc[F("ChlPumpFR")];
-    savePumpsConf();
-    PhPump.SetFlowRate(storage.PumpsConfig[PUMP_CHL].pump_flow_rate * 1000);
+    //storage.PumpsConfig[PUMP_CHL].pump_flow_rate = (double)_jsonsdoc[F("ChlPumpFR")];
+    //savePumpsConf();
+    PhPump.SetFlowRate((double)_jsonsdoc[F("ChlPumpFR")] * 1000);
+    PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
     PublishSettings();
 }
 void p_RstpHCal(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -601,18 +609,26 @@ void p_PINConfig(StaticJsonDocument<250>  &_jsonsdoc) {
     storage.PumpsConfig[temp_index].pin_active_level = (bool)_jsonsdoc[F("PINConfig")][2]; // LEVEL HIGH or LOW
     storage.PumpsConfig[temp_index].relay_operation_mode = (bool)_jsonsdoc[F("PINConfig")][3]; // LATCH or MOMENTARY
     uint8_t lock_id = (uint8_t)_jsonsdoc[F("PINConfig")][4];
-    lock_id = ((lock_id == 255)?255:lock_id-1); // Nextion counts from 1 to 8 but GetInterlockId return from 0 to 7 (except NO_INTERLOCK which does not move)
+    lock_id = ((lock_id == NO_INTERLOCK)?NO_INTERLOCK:lock_id-1); // Nextion counts from 1 to 8 but GetInterlockId return from 0 to 7 (except NO_INTERLOCK which does not move)
     storage.PumpsConfig[temp_index].pin_interlock = lock_id ; // INTERLOCK PIN INDEX (Nextion counts 1 to 8 so substract 1)
-    savePumpsConf();
+    //savePumpsConf();
 
     // Apply changes
-    Pool_Equipment[temp_index]->SetPinNumber((uint8_t)_jsonsdoc[F("PINConfig")][1]);
-    Pool_Equipment[temp_index]->SetActiveLevel((bool)_jsonsdoc[F("PINConfig")][2]);
-    Pool_Equipment[temp_index]->SetOperationMode((bool)_jsonsdoc[F("PINConfig")][3]);
+    //Pool_Equipment[temp_index]->SetPinNumber((uint8_t)_jsonsdoc[F("PINConfig")][1]);
+    //Pool_Equipment[temp_index]->SetActiveLevel((bool)_jsonsdoc[F("PINConfig")][2]);
+    //Pool_Equipment[temp_index]->SetOperationMode((bool)_jsonsdoc[F("PINConfig")][3]);
+    PoolDeviceManager.GetDevice(temp_index)->SetPinNumber((uint8_t)_jsonsdoc[F("PINConfig")][1]);
+    PoolDeviceManager.GetDevice(temp_index)->SetActiveLevel((uint8_t)_jsonsdoc[F("PINConfig")][2]);
+    PoolDeviceManager.GetDevice(temp_index)->SetOperationMode((uint8_t)_jsonsdoc[F("PINConfig")][3]);
+    PoolDeviceManager.GetDevice(temp_index)->SetInterlock((uint8_t)lock_id);
+    PoolDeviceManager.InitDevicesInterlock(temp_index);
+    PoolDeviceManager.GetDevice(temp_index)->Begin();
+    PoolDeviceManager.SavePreferences(temp_index);
 
     // If an interlock is requested, loop through the equipment list to find its reference and assign the pointer
-    if(storage.PumpsConfig[temp_index].pin_interlock != NO_INTERLOCK)
+    /*if(lock_id != NO_INTERLOCK)
     {
+        PoolDeviceManager.Ini
       for(auto equi_lock: Pool_Equipment)
       {
         if(equi_lock->GetPinId() == storage.PumpsConfig[temp_index].pin_interlock)
@@ -624,6 +640,6 @@ void p_PINConfig(StaticJsonDocument<250>  &_jsonsdoc) {
     {
       Pool_Equipment[temp_index]->SetInterlock(nullptr);
     }
-    Pool_Equipment[temp_index]->Begin();
+    Pool_Equipment[temp_index]->Begin();*/
 }
 

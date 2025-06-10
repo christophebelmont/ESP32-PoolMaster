@@ -161,14 +161,20 @@ void Pump::SetInterlock(PIN* _interlock_pump_)
   interlock_pump_ = _interlock_pump_;
 }
 
+void Pump::SetInterlock(uint8_t _interlock_pin_id)
+{
+  interlock_pin_id = _interlock_pin_id;
+}
+
 uint8_t Pump::GetInterlockId(void) 
 {
-  if(interlock_pump_ != nullptr)
+/*  if(interlock_pump_ != nullptr)
   {
     return interlock_pump_->GetPinId();
   } else {
     return NO_INTERLOCK;
-  }
+  }*/
+  return interlock_pin_id;
 }
 
 //Interlock status

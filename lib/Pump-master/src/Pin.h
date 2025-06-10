@@ -7,10 +7,10 @@ Features:
 
 NB: all timings are in milliseconds
 */
+#include <Preferences.h>
 
 #ifndef PIN_h
 #define PIN_h
-
 #define PIN_VERSION "1.0.1"
 
 //Class constants
@@ -48,12 +48,47 @@ class PIN {
     virtual void SetFlowRate(double) = 0;
     virtual void SetMaxUpTime(unsigned long) = 0;
     virtual void SetInterlock(PIN*) = 0;
+    virtual void SetInterlock(uint8_t) = 0;
     virtual uint8_t GetInterlockId(void) = 0;
     virtual double GetTankFill() = 0;
     virtual void ResetUpTime() = 0;
     virtual void loop() = 0;
     virtual bool IsEnabled() = 0;
     virtual bool IsRelay() = 0;
+
+    virtual void SavePreferences(Preferences& prefs) {
+        char key[15]; 
+        
+        snprintf(key, sizeof(key), "d%d_pn", pin_id);  // "device_X_pin_number"
+        prefs.putUChar(key, pin_number);
+
+        snprintf(key, sizeof(key), "d%d_pd", pin_id);  // "device_X_pin_direction"
+        prefs.putBool(key, pin_direction);
+
+        snprintf(key, sizeof(key), "d%d_id", pin_id);  // "device_X_pin_id"
+        prefs.putUChar(key, pin_id);
+
+        snprintf(key, sizeof(key), "d%d_al", pin_id);  // "device_X_active_level"
+        prefs.putBool(key, active_level);
+    }
+
+    virtual void LoadPreferences(Preferences& prefs) {
+      char key[15];
+
+      snprintf(key, sizeof(key), "d%d_pn", pin_id);
+      pin_number = prefs.getUChar(key, pin_number);
+
+      snprintf(key, sizeof(key), "d%d_pd", pin_id);
+      pin_direction = prefs.getBool(key, pin_id);
+
+      snprintf(key, sizeof(key), "d%d_id", pin_id);
+      pin_id = prefs.putUChar(key, pin_id);
+
+      snprintf(key, sizeof(key), "d%d_al", pin_id);
+      active_level = prefs.getBool(key, active_level);
+  }
+
+
   private:
     void Initialize(uint8_t, uint8_t = OUTPUT_DIGITAL, bool = ACTIVE_LOW);
 

@@ -14,6 +14,7 @@
 //could have been not in HMI file, but it is good to know that after reset the Nextion goes back to 9600 bauds
 void ResetTFT()
 {
+  //myNex.begin(115200);
   myNex.begin(115200);
   myNex.writeStr("sleep=0");
   myNex.writeStr(F("rest"));
@@ -41,8 +42,9 @@ void WriteSwitches()
   switches_bitmap |= (PSIError & 1)                 << 23;     //    8 388 608
   switches_bitmap |= (PhPump.UpTimeError & 1)       << 22;     //    4 194 304
   switches_bitmap |= (ChlPump.UpTimeError & 1)      << 21;     //    2 097 152
-  switches_bitmap |= ((digitalRead(POOL_LEVEL)==HIGH) & 1) << 20; // 1 048 576
-
+  //switches_bitmap |= ((digitalRead(POOL_LEVEL)==HIGH) & 1) << 20; // 1 048 576
+  switches_bitmap |= (PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive() & 1) << 20; // 1 048 576
+  
   //switches_bitmap |= (storage.ElectroRunMode & 1)   << 16;     //       65 536
   switches_bitmap |= (FillingPump.UpTimeError & 1)  << 15;     //       32 768
   switches_bitmap |= (FillingPump.IsRunning() & 1)  << 14;     //       16 384
@@ -107,6 +109,14 @@ void UpdateTFT(void *pvParameters)
       {
         WriteSwitches();
       }
+
+      // New Main Home Page Intelligent Series
+      if (myNex.currentPageId==ENP_HOME800)
+      {
+
+
+      }
+
 
       if(myNex.currentPageId==ENP_SPLASH || myNex.currentPageId==ENP_HOME)    //Splash & Home
       {
@@ -189,40 +199,42 @@ void UpdateTFT(void *pvParameters)
        * ****************************************/
         LastUpdatedHome = millis();
         // Date and Time
-        sprintf(temp, PSTR("%02d/%02d/%04d %02d:%02d:%02d"), day(), month(), year(), hour(), minute(), second());
-        myNex.writeStr(F("pageHomeSimple.tTimeDate.txt"),temp);
+        sprintf(temp, PSTR("%02d:%02d:%02d"), hour(), minute(), second());
+        myNex.writeStr(F(GLOBAL".vaTime.txt"),temp);
+        sprintf(temp, PSTR("%02d/%02d/%02d"), day(), month(), year()-2000);
+        myNex.writeStr(F(GLOBAL".vaDate.txt"),temp);
 
         // PSI difference with Threshold
         if (storage.PSIValue <= storage.PSI_MedThreshold) {
-          myNex.writeNum(F("pageHomeSimple.vaPSINiddle.val"), 0);
+          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 0);
         } else if (storage.PSIValue > storage.PSI_HighThreshold){
-          myNex.writeNum(F("pageHomeSimple.vaPSINiddle.val"), 4);
+          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 4);
         } else {
-          myNex.writeNum(F("pageHomeSimple.vaPSINiddle.val"), 2);
+          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 2);
         }
 
         // pH & Orp niddle position
         if(abs(storage.PhValue-storage.Ph_SetPoint) <= 0.1) 
-          myNex.writeNum(F("pageHomeSimple.vaPHNiddle.val"),0);
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),0);
         if((storage.PhValue-storage.Ph_SetPoint) > 0.1 && (storage.PhValue-storage.Ph_SetPoint) <= 0.3)  
-          myNex.writeNum(F("pageHomeSimple.vaPHNiddle.val"),1);
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),1);
         if((storage.PhValue-storage.Ph_SetPoint) < -0.1 && (storage.PhValue-storage.Ph_SetPoint) >= -0.3)  
-          myNex.writeNum(F("pageHomeSimple.vaPHNiddle.val"),-1);
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),-1);
         if((storage.PhValue-storage.Ph_SetPoint) > 0.3)  
-          myNex.writeNum(F("pageHomeSimple.vaPHNiddle.val"),2);
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),2);
         if((storage.PhValue-storage.Ph_SetPoint) < -0.3)  
-          myNex.writeNum(F("pageHomeSimple.vaPHNiddle.val"),-2);
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),-2);
 
         if(abs(storage.OrpValue-storage.Orp_SetPoint) <= 70.) 
-          myNex.writeNum(F("pageHomeSimple.vaOrpNiddle.val"),0);
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),0);
         if((storage.OrpValue-storage.Orp_SetPoint) > 70. && (storage.OrpValue-storage.Orp_SetPoint) <= 200.)  
-          myNex.writeNum(F("pageHomeSimple.vaOrpNiddle.val"),1);
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),1);
         if((storage.OrpValue-storage.Orp_SetPoint) < -70. && (storage.OrpValue-storage.Orp_SetPoint) >= -200.)  
-          myNex.writeNum(F("pageHomeSimple.vaOrpNiddle.val"),-1);
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),-1);
         if((storage.OrpValue-storage.Orp_SetPoint) > 200.)  
-          myNex.writeNum(F("pageHomeSimple.vaOrpNiddle.val"),2);    
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),2);    
         if((storage.OrpValue-storage.Orp_SetPoint) < -200.)  
-          myNex.writeNum(F("pageHomeSimple.vaOrpNiddle.val"),-2); 
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),-2); 
 
         // pH & Orp Values
         snprintf_P(temp,sizeof(temp),PSTR("%4.2f"),storage.PhValue);
@@ -232,8 +244,10 @@ void UpdateTFT(void *pvParameters)
   
         // Water Temperature
         snprintf_P(temp,sizeof(temp),PSTR("%4.1f°C"),storage.WaterTemp);
-        myNex.writeStr(F("pageHomeSimple.tTemp.txt"),temp);
+        myNex.writeStr(F("pageMenu800.tTopRight.txt"),temp);
       }
+
+      
       if(myNex.currentPageId == ENP_MENU)     //Settings Menu
       {
         period=PT10/2;  // Accelerate TFT refresh when browsing menu
@@ -518,8 +532,11 @@ void UpdateTFT(void *pvParameters)
         uint32_t SrcACTIVE_Bitmap = 0;
         uint32_t SrcMOMENT_Bitmap = 0;
         uint32_t SrcISRELAY_Bitmap = 0;
-        for(auto equi: Pool_Equipment)
+        //for(auto equi: Pool_Equipment)
+        for (uint8_t i = 0; i < DEVICE_POOL_LEVEL; i++)
         {
+          PIN* equi = PoolDeviceManager.GetDevice(i);
+
           // Set PIN Numbers
           snprintf_P(temp,sizeof(temp),PSTR("%d"),equi->GetPinNumber());
           strcat(SrcPINs,temp);

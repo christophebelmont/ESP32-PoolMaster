@@ -6,6 +6,7 @@
 #include "PoolMaster.h"
 #include "EasyNextionLibrary.h"
 #include "EasyNextionMenus.h"
+#include "EasyNextionEventManager.h"
 #include "translation.h"           // Include all translated strings into flash
 
 // MENU CUSTOM COMMANDS
@@ -29,7 +30,8 @@ typedef enum EasyNextionPages { // IMPORTANT: Values not dynamic. Needs to be ch
     ENP_ALERTS        = 17, // printh 23 02 50 11
     ENP_SMTP_CONFIG   = 18, // printh 23 02 50 12
     ENP_PINS_CONFIG   = 19, // printh 23 02 50 13
-    ENP_HELP_POPUP    = 20  // printh 23 02 50 14
+    ENP_HELP_POPUP    = 20, // printh 23 02 50 14
+    ENP_HOME800       = 21  // printh 23 02 50 15
   } en_pages_t;
 
 typedef enum EasyNextionMenuPages { // IMPORTANT: These values are dynamic. They are set in the code end send to Nextion

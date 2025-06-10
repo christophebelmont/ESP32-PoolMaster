@@ -160,5 +160,6 @@ double Relay::GetTankFill() {return 100.;}
 void Relay::ResetUpTime() {}
 void Relay::loop() {};
 void Relay::SetInterlock(PIN* _interlock) {}
+void Relay::SetInterlock(uint8_t) {}
 uint8_t Relay::GetInterlockId(void) { return NO_INTERLOCK;}
 bool Relay::IsRelay(void) {return true;}

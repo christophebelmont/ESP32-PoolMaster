@@ -52,7 +52,8 @@ void stack_mon(UBaseType_t&);
 
 //Nextion TFT object. Choose which ever Serial port
 //you wish to connect to (not "Serial" which is used for debug), here Serial2 UART
-static EasyNex myNex(Serial2);
+//WiFiServer myServer(23); // Telnet Server on port 23
+EasyNex myNex(Serial2);
 
 // Functions prototypes
 void ResetTFT(void);

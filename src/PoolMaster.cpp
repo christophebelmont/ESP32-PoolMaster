@@ -92,31 +92,36 @@ void PoolMaster(void *pvParameters)
     // Handle OTA update
     ArduinoOTA.handle();
 
-#ifdef ELEGANT_OTA
+/*#ifdef ELEGANT_OTA
     //server.handleClient();
     ElegantOTA.loop();
-#endif
+#endif*/
 
     // Call pumps and relays loop function
-    for(auto equi: Pool_Equipment)
-    {
-      equi->loop();
-    }
+    //for(auto equi: Pool_Equipment)
+    //{
+    //  equi->loop();
+    //}
+    // Call pumps and relays loop function
+    PoolDeviceManager.Loop(); // Call the loop function of the device manager
+
 
     //reset time counters at midnight and send sync request to time server
     if (hour() == 0 && !DoneForTheDay)
     {
       // Reset all pumps uptime
       int i=0;
-      for(auto equi: Pool_Equipment)
-      {
-        storage.PumpsConfig[i].tank_fill = equi->GetTankFill();
-        equi->ResetUpTime();
-        equi->SetTankFill(storage.PumpsConfig[i].tank_fill);
-        i++;
-      }
+      //for(auto equi: Pool_Equipment)
+      //{
+      //  storage.PumpsConfig[i].tank_fill = equi->GetTankFill();
+       // equi->ResetUpTime();
+       // equi->SetTankFill(storage.PumpsConfig[i].tank_fill);
+      //  i++;
+      //}
+      // Reset all devices uptimes
+      PoolDeviceManager.ResetUptimes(); // Reset UpTime for all devices
       // Save 
-      savePumpsConf();
+      //savePumpsConf();
 
         d_calc = false;
         DoneForTheDay = true;
@@ -307,13 +312,13 @@ void PoolMaster(void *pvParameters)
   } // End of Filtration Pimp IS Running
 
 // Check water level (HIGH means that jumper is opened)
-if((digitalRead(POOL_LEVEL) == HIGH) && (!FillingPump.IsRunning())) {
+if((PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive()) && (!FillingPump.IsRunning())) {
   FillingPump.ResetUpTime();  // We are interested in computing uptime from now
   FillingPump.Start();
 } 
 
 // Stop Pump if level back to normal and minimum runtime reached
-if(FillingPump.IsRunning() && (digitalRead(POOL_LEVEL) == LOW) && (FillingPump.UpTime > (storage.PumpsConfig[PUMP_FILL].pump_min_uptime*1000))) {
+if(FillingPump.IsRunning() && (!PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive()) && (FillingPump.UpTime > (storage.PumpsConfig[PUMP_FILL].pump_min_uptime*1000))) {
   FillingPump.Stop();
 }
 

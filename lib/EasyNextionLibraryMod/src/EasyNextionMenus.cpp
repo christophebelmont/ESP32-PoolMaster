@@ -1,5 +1,5 @@
 /*!
- * EasyNextionMenus.h - Easy library for building menus on Nextion Displays
+ * EasyNextionMenus.cpp - Easy library for building menus on Nextion Displays
  * Copyright (c) 2025 Christophe Belmont
  * All rights reserved under the library's licence
  */

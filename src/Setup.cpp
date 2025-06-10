@@ -144,28 +144,32 @@ Preferences nvs;
 //    5/ Tankvolume is used to compute the percentage of tank used/remaining
 // IMPORTANT NOTE: second argument is ID and MUST correspond to the equipment index in the "Pool_Equipment" vector
 // FiltrationPump: This Pump controls the filtration, no tank attached and not interlocked to any element. SSD relay attached works with HIGH level.
-Pump FiltrationPump(FILTRATION,0);
+Pump FiltrationPump(FILTRATION,0,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
 // pHPump: This Pump has no low-level switch so remaining volume is estimated. It is interlocked with the relay of the FilrationPump
 //Pump PhPump(PH_PUMP, PH_LEVEL, ACTIVE_LOW, MODE_LATCHING, storage.pHPumpFR, storage.pHTankVol, storage.AcidFill);
-Pump PhPump(PH_PUMP,1);
+Pump PhPump(PH_PUMP,1,PH_LEVEL,ACTIVE_LOW,MODE_LATCHING,1.5,20.,100.);
 // ChlPump: This Pump has no low-level switch so remaining volume is estimated. It is interlocked with the relay of the FilrationPump
 //Pump ChlPump(CHL_PUMP, CHL_LEVEL, ACTIVE_LOW, MODE_LATCHING, storage.ChlPumpFR, storage.ChlTankVol, storage.ChlFill);
-Pump ChlPump(CHL_PUMP,2);
+Pump ChlPump(CHL_PUMP,2,CHL_LEVEL,ACTIVE_LOW,MODE_LATCHING,1.5,20.,100.);
 // RobotPump: This Pump is not injecting liquid so tank is associated to it. It is interlocked with the relay of the FilrationPump
-Pump RobotPump(ROBOT,3);
+Pump RobotPump(ROBOT,3,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
 // SWG: This Pump is associated with a Salt Water Chlorine Generator. It turns on and off the equipment to produce chlorine.
 // It has no tank associated. It is interlocked with the relay of the FilrationPump
-Pump SWGPump(SWG_PUMP,4); // SWG is interlocked with the Pump Relay
+Pump SWGPump(SWG_PUMP,4,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
 // Filling Pump: This pump is autonomous, not interlocked with filtering pump.
-Pump FillingPump(FILL_PUMP,5);
+Pump FillingPump(FILL_PUMP,5,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
 //Pump *FillingPump;
 
 // The Relays class to activate and deactivate digital pins
-Relay RELAYR0(PROJ,6);
-Relay RELAYR1(SPARE,7);
+Relay RELAYR0(PROJ,6,OUTPUT_DIGITAL,ACTIVE_LOW,MODE_LATCHING); // Relay for the projector
+Relay RELAYR1(SPARE,7,OUTPUT_DIGITAL,ACTIVE_LOW,MODE_LATCHING); // Relay for the spare
+
+// Input ports
+InputSensor PoolWaterLevelSensor(POOL_LEVEL, 8); // Pool water level sensor (pool level ok if HIGH and pool level problem if LOW)
 
 // List of all the equipment of PoolMaster
-std::vector<PIN*> Pool_Equipment;
+//std::vector<PIN*> Pool_Equipment;
+DeviceManager PoolDeviceManager;
 
 // PIDs instances
 //Specify the direction and initial tuning parameters
@@ -177,7 +181,7 @@ static TaskHandle_t pubSetTaskHandle;
 static TaskHandle_t pubMeasTaskHandle;
 
 // Used for ElegantOTA
-unsigned long ota_progress_millis = 0;
+//unsigned long ota_progress_millis = 0;
 
 // Mutex to share access to I2C bus among two tasks: AnalogPoll and StatusLights
 static SemaphoreHandle_t mutex;
@@ -221,12 +225,11 @@ void MeasuresPublish(void*);
 void StatusLights(void*);
 void UpdateTFT(void*);
 void HistoryStats(void *);
-void int_array_init(uint8_t *a, const int ct, ...);
 
 // For ElegantOTA
-void onOTAStart(void);
+/*void onOTAStart(void);
 void onOTAProgress(size_t,size_t);
-void onOTAEnd(bool);
+void onOTAEnd(bool);*/
 
 // Setup
 void setup()
@@ -278,22 +281,38 @@ void setup()
   // Warning: pins used here have no pull-ups, provide external ones
   pinMode(CHL_LEVEL, INPUT);
   pinMode(PH_LEVEL, INPUT);
-  pinMode(POOL_LEVEL, INPUT);
+  //pinMode(POOL_LEVEL, INPUT);
 
   // Fill the table of equipments (FiltrationPump is index [0])
   // save their configs
   // The order MUST correspond to the index when the Pumps and Relays objects are created
-  Pool_Equipment.push_back(&FiltrationPump);
+  /*Pool_Equipment.push_back(&FiltrationPump);
   Pool_Equipment.push_back(&PhPump);
   Pool_Equipment.push_back(&ChlPump);
   Pool_Equipment.push_back(&RobotPump);
   Pool_Equipment.push_back(&SWGPump);
   Pool_Equipment.push_back(&FillingPump);
   Pool_Equipment.push_back(&RELAYR0);
-  Pool_Equipment.push_back(&RELAYR1);
+  Pool_Equipment.push_back(&RELAYR1);*/
+
+  // Fill DeviceManager with the list of devices
+  PoolDeviceManager.AddDevice(DEVICE_FILTPUMP,&FiltrationPump);
+  PoolDeviceManager.AddDevice(DEVICE_PH_PUMP,&PhPump);
+  PoolDeviceManager.AddDevice(DEVICE_CHL_PUMP,&ChlPump);
+  PoolDeviceManager.AddDevice(DEVICE_ROBOT,&RobotPump);
+  PoolDeviceManager.AddDevice(DEVICE_SWG,&SWGPump);
+  PoolDeviceManager.AddDevice(DEVICE_FILLING_PUMP,&FillingPump);
+  PoolDeviceManager.AddDevice(DEVICE_RELAY0,&RELAYR0);
+  PoolDeviceManager.AddDevice(DEVICE_RELAY1,&RELAYR1);
+  PoolDeviceManager.AddDevice(DEVICE_POOL_LEVEL,&PoolWaterLevelSensor);
+
+  // Load configuration parameters from NVS
+  PoolDeviceManager.LoadPreferences();
+  PoolDeviceManager.InitDevicesInterlock();
+  PoolDeviceManager.Begin();
 
   // Assign globals configuration parameters to pumps (pin number, high/low level and operation mode)
-  int i=0;
+  /*int i=0;
   for(auto& equi: Pool_Equipment)
   {
     equi->SetPinNumber(storage.PumpsConfig[i].pin_number,storage.PumpsConfig[i].pin_direction, storage.PumpsConfig[i].pin_active_level);
@@ -319,7 +338,7 @@ void setup()
     // Start Pump Operation
     equi->Begin();
     i++;
-  }
+  }*/
 
   // Initialize watch-dog
   esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -375,10 +394,10 @@ void setup()
   SetOrpPID(false);
 
   // Robot pump off at start
-  RobotPump.Stop();
+  //RobotPump.Stop();
   
   // Pool Filling pump off at start
-  FillingPump.Stop();
+  //FillingPump.Stop();
 
   // Create queue for external commands
   queueIn = xQueueCreate((UBaseType_t)QUEUE_ITEMS_NBR,(UBaseType_t)QUEUE_ITEM_SIZE);
@@ -513,7 +532,7 @@ void setup()
     app_cpu
   );
 
-#ifdef ELEGANT_OTA
+/*#ifdef ELEGANT_OTA
 // ELEGANTOTA Configuration
   //server.on("/", []() {
   //  server.send(200, "text/plain", "NA");
@@ -530,7 +549,7 @@ void setup()
 #ifdef ELEGANT_OTA_AUTH
   ElegantOTA.setAuth(ELEGANT_OTA_USERNAME, ELEGANT_OTA_PASSWORD);
 #endif
-#endif
+#endif*/
 
   // Initialize OTA (On The Air update)
   //-----------------------------------
@@ -575,7 +594,7 @@ void setup()
 
 }
 
-
+/*
 void onOTAStart() {
   // Log when OTA has started
   Debug.print(DBG_WARNING,"OTA update started!");
@@ -599,7 +618,7 @@ void onOTAEnd(bool success) {
     Debug.print(DBG_ERROR,"There was an error during OTA update!");
   }
   // <Add your own code here>
-}
+}*/
 
 bool loadConfig()
 {
@@ -972,11 +991,3 @@ void loop()
   vTaskDelete(nullptr);
 }
 
-void int_array_init(uint8_t *a, const int ct, ...) {
-  va_list args;
-  va_start(args, ct);
-  for(int i = 0; i < ct; ++i) {
-    a[i] = va_arg(args, int);
-  }
-  va_end(args);
-}

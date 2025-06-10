@@ -54,7 +54,9 @@ void EncodeBitMap()
   BitMap2 |= (RELAYR0.IsActive() & 1) << 3;
   BitMap2 |= (RELAYR1.IsActive() & 1) << 2;
   BitMap2 |= (storage.WinterMode & 1) << 1;
-  BitMap2 |= ((digitalRead(POOL_LEVEL) == HIGH) & 1) << 0;
+  //BitMap2 |= ((digitalRead(POOL_LEVEL) == HIGH) & 1) << 0;
+  BitMap2 |= (PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive() & 1) << 0;
+  
 
   BitMap3 |= (0 & 1U) << 7;                         // 128
   BitMap3 |= (storage.BuzzerOn & 1) << 6;           // 64

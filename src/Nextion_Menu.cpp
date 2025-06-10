@@ -1,9 +1,6 @@
 /*
   NEXTION MENU TFT related code, based on EasyNextion library by Seithan / Athanasios Seitanis.
-  Used to display the menu and the status of the pool.
-  The trigger(s) functions at the end are called by the Nextion library on event (buttons, page change).
-    Completely reworked and simplified. These functions only update Nextion variables. The display is then updated localy by the
-    Nextion itself.
+  Used to define and display the settings menu
 */
 #include "Nextion_Menu.h"
 
@@ -20,6 +17,15 @@ EasyNextionMenus  SubMenu9(7,ENM_SUB);
 EasyNextionMenus  SubMenu10(7,ENM_SUB);
 EasyNextionMenus  SubMenu11(7,ENM_SUB);
 EasyNextionMenus  SubMenu12(7,ENM_SUB);
+
+/**
+ * @brief Register the events and commands which are received from the Nextion display.
+ * @param _myNex The EasyNex object to use for the menu.
+ */
+void NexMenu_RegisterEvents(EasyNex& _myNex)
+{
+
+}
 
 /**
  * @brief Initialize the Nextion menu system.

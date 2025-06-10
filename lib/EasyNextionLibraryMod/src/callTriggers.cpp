@@ -18,8 +18,8 @@
 #endif
 
 void EasyNex::callTriggerFunction(){
-  
- uint8_t _tempRead = _serial->read();  // We read the next byte, which, according to our protocol, is the < Trigger ID >
+  uint8_t _tempRead = 0;
+ // _tempRead = _serial->read();  // We read the next byte, which, according to our protocol, is the < Trigger ID >
                                 // From Nextion we send: < printh 23 02 54 xx >
                                 // (where xx is the trigger id in HEX, 01 for 1, 02 for 2, ... 0A for 10 etc)
   switch(_tempRead){
@@ -231,9 +231,8 @@ void EasyNex::callTriggerFunction(){
 }
 
 void EasyNex::calltriggermenuFunction(){
-  
-  uint8_t _tempRead1 = _serial->read();  // We read the next byte, main menu (00) or sub menu (01)
-  uint8_t _tempRead2;
+  uint8_t _tempRead1,_tempRead2;
+  _tempRead1 = _serial->read();  // We read the next byte, main menu (00) or sub menu (01)
   switch(_tempRead1){
     case 0x00:
       _tempRead2 = _serial->read();  // We read the next byte, menu ID

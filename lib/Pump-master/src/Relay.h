@@ -55,8 +55,26 @@ class Relay : public PIN {
     double GetTankFill();
     void ResetUpTime();
     void SetInterlock(PIN*);
+    void SetInterlock(uint8_t);
     uint8_t GetInterlockId(void);
     bool IsRelay(void);
+
+    void SavePreferences(Preferences& prefs) override {
+        PIN::SavePreferences(prefs);
+
+        char key[15];
+        snprintf(key, sizeof(key), "d%d_om", GetPinId());  // "device_X_operation_mode"
+        prefs.putBool(key, operation_mode);
+    }
+
+    void LoadPreferences(Preferences& prefs) override {
+        PIN::LoadPreferences(prefs);
+
+        char key[15];
+        snprintf(key, sizeof(key), "d%d_om", GetPinId());
+        operation_mode = prefs.getBool(key, operation_mode);
+    }
+
 
   private:
     void Initialize(bool = MODE_LATCHING);

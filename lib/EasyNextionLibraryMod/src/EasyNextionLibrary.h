@@ -3,17 +3,21 @@
  * Copyright (c) 2020 Athanasios Seitanis < seithagta@gmail.com >. 
  * All rights reserved under the library's licence
  */
-
+#include <WiFi.h>
+#include <WiFiServer.h>
 #if ARDUINO >= 100    
  #include "Arduino.h"
 #else
  #include "WProgram.h"
 #endif
+
   //------------------------------------------------------
  // ensure this library description is only included once
 //--------------------------------------------------------
 #ifndef EasyNextionLibrary_h
 #define EasyNextionLibrary_h
+#include "EasyNextionEventManager.h"
+
 
 #define TFT_SLEEP 60000L
 
@@ -82,6 +86,7 @@ class EasyNex {
 
 	public:
     EasyNex(HardwareSerial& serial);
+    EasyNex(WiFiServer&);
 		void begin(unsigned long baud = 9600);
     void writeNum(String, uint32_t);
     void writeStr(String, String txt = "cmd");
@@ -127,8 +132,9 @@ class EasyNex {
 	 // library-accessible "private" interface
   //-----------------------------------------
 	private:
-    HardwareSerial* _serial;
-		void readCommand(void);
+    HardwareSerial* _serial = nullptr;
+    WiFiServer *_server = nullptr;
+    void readCommand(void);
     void callTriggerFunction(void);
     void calltriggermenuFunction(void);
     
@@ -163,6 +169,7 @@ class EasyNex {
 		 // for function readStr()
     //-----------------------------------------  
     String _readString;
+    EasyNextionEventManager* _eventManager;
     
 };
 

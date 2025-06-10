@@ -10,8 +10,8 @@
 #include <Wire.h>                 // Two wires / I2C library
 #include <stdlib.h>               // Definitions  for common types, variables, and functions
 #include <vector>                 // List vectors
+#include <map>                    // Map library
 #include <ArduinoJson.h>          // JSON library
-#include <Pump.h>                 // Simple library to handle home-pool filtration and peristaltic pumps
 #include <DallasTemperature.h>    // Maxim (Dallas DS18B20) Temperature temperature sensor library
 #include <esp_task_wdt.h>         // ESP task management library
 #include <Preferences.h>          // Non Volatile Storage management (ESP)
@@ -23,10 +23,17 @@
 #include "AsyncMqttClient.h"      // Async. MQTT client
 #include "ADS1115.h"              // ADS1115 sensors library
 #include "Helpers.h"
-#ifdef ELEGANT_OTA
+
+// Library to handle all pool equipement input/output
+#include <Pump.h>                 // Simple library to handle home-pool filtration and peristaltic pumps
+#include <Relay.h>                // Simple library to handle relays
+#include <PIN.h>                  // Simple library to handle digital pins
+#include <InputSensor.h>          // Simple library to handle digital pins
+#include <DeviceManager.h>        // Simple library to handle group of PIN/RELAY/PUMP/INPUTSENSOR devices
+/*#ifdef ELEGANT_OTA
 #include <ESPAsyncWebServer.h>            // Used for ElegantOTA
 #include <ElegantOTA.h>
-#endif
+#endif*/
 
 struct StorePumpConfig
 {
@@ -65,6 +72,18 @@ struct StoreStruct
   StorePumpConfig PumpsConfig[8]; // Table representing the configuration for Pumps
 } ;
 
+typedef enum DeviceManagerType {
+    DEVICE_FILTPUMP = 0,
+    DEVICE_PH_PUMP,
+    DEVICE_CHL_PUMP,
+    DEVICE_ROBOT,
+    DEVICE_SWG,
+    DEVICE_FILLING_PUMP,
+    DEVICE_RELAY0,
+    DEVICE_RELAY1,
+    DEVICE_POOL_LEVEL
+} DeviceManagerType_t;
+
 // Global status of the board
 extern bool PoolMaster_BoardReady;      // Is Board Up
 extern bool PoolMaster_WifiReady;      // Is Wifi Up
@@ -92,7 +111,8 @@ extern Pump RobotPump;
 extern Pump FillingPump;
 extern Pump SWGPump;    // Pump class which control the Salt Water Chlorine Generator (switch it on and off)
 
-extern std::vector<PIN*> Pool_Equipment;
+//extern std::vector<PIN*> Pool_Equipment;
+extern DeviceManager PoolDeviceManager;
 
 // The Relay to activate and deactivate Orp production
 extern Relay RELAYR0;

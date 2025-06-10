@@ -99,11 +99,11 @@
 
 // ElegantOTA Config
 //#define ELEGANT_OTA
-#ifdef ELEGANT_OTA
+/*#ifdef ELEGANT_OTA
   #define ELEGANT_OTA_AUTH
   #define ELEGANT_OTA_USERNAME  "<ELEGANT_OTA_USERNAME>"
   #define ELEGANT_OTA_PASSWORD  "<ELEGANT_OTA_PASSWORD>"
-#endif
+#endif*/
 // Robot pump timing
 #define ROBOT_DELAY 60     // Robot start delay after filtration in mn
 #define ROBOT_DURATION 90  // Robot cleaning duration
