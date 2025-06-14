@@ -53,8 +53,6 @@ extern bool readLocalTime(void);
 //extern void SetNTPReady(bool);
 //extern void SetMQTTReady(bool);
 
-extern Preferences nvs;
-
 void initTimers() {
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(reconnectToWiFi));
@@ -100,11 +98,8 @@ void mqttDisconnect() {
 void InitWiFi(){
   Debug.print(DBG_INFO,"[WiFi] Initializing WiFi...");
   WiFi.mode(WIFI_STA);
-  nvs.begin("PoolMaster2",true);
-  String hostname = nvs.getString("hostname", "PoolMaster");
-  nvs.end();  
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
-  if (hostname != "") WiFi.setHostname(hostname.c_str());
+  WiFi.setHostname(HOSTNAME);
 }
 
 void connectToWiFi(){

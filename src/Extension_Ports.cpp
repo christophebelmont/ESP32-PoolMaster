@@ -54,7 +54,8 @@ struct ListExtensions knownI2C[] = {
 // * This is where we declare our extensions *
 // *******************************************
 struct ListExtensions myListExtensions[] = {
-    {"SuperVisor",              SuperVisor_Init,        _I2C_ },
+    {"SuperVisor",              SuperVisor_Init,        _I2C_ },   // Talk to SuperVisor via I2C
+    {"SuperVisor",              SuperVisor_Info_Init,   _OTHER_ }, // Talk to SuperVisor via Serial
     {"PoolRoom/TFAVenice",      TFAVenice_RF433T_Init,  _GPIO_TFA_RF433T_ },
     {"PoolRoom/TempHumidity",   SHT40_0x44_Init,        _I2C_ },
     {"PoolRoom/Temperature",    BMP280_0x76_Init,       _I2C_ },
