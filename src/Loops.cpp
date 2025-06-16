@@ -81,7 +81,7 @@ void AnalogPoll(void *pvParameters)
     lockI2C();
     adc_ext.update();
 
-    if(adc_ext.ready()){                              // all conversions done ?
+    /*if(adc_ext.ready()){                              // all conversions done ?
       // As an int is 32 bits long for ESP32 and as the ADS1115 is wired in differential, we have to manage
       // negative voltage as follow
       orp_sensor_value = adc_ext.readFilter(0);
@@ -100,7 +100,7 @@ void AnalogPoll(void *pvParameters)
 
       Debug.print(DBG_DEBUG,"pH: %5.0f - %4.2f - ORP: %5.0f - %3.0fmV - PSI: %5.0f - %4.2fBar\r",
         ph_sensor_value,storage.PhValue,orp_sensor_value,storage.OrpValue,psi_sensor_value,storage.PSIValue);
-    }
+    }*/
     
     adc_int.update();
 
@@ -289,6 +289,8 @@ void StatusLights(void *pvParameters)
     if(storage.BuzzerOn)
     {
       (status & 0xF0) ? digitalWrite(BUZZER,HIGH) : digitalWrite(BUZZER,LOW) ;
+    }else{
+      digitalWrite(BUZZER,LOW);
     }
     if(WiFi.status() == WL_CONNECTED) status |= 0x01;
         else status &= 0xFE;

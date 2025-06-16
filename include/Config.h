@@ -15,7 +15,7 @@
 #define CONFIG_VERSION 70
 
 // Compile on development environment or production (if not defined)
-//#define DEVT // Value defined in platformio.ini
+#define DEVT // Value defined in platformio.ini
 
 // WiFi credentials
 #define WIFI_SCAN_INTERVAL  10000

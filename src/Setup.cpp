@@ -158,7 +158,6 @@ Pump RobotPump(ROBOT,3,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
 Pump SWGPump(SWG_PUMP,4,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
 // Filling Pump: This pump is autonomous, not interlocked with filtering pump.
 Pump FillingPump(FILL_PUMP,5,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
-//Pump *FillingPump;
 
 // The Relays class to activate and deactivate digital pins
 Relay RELAYR0(PROJ,6,OUTPUT_DIGITAL,ACTIVE_LOW,MODE_LATCHING); // Relay for the projector

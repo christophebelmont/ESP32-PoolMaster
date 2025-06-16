@@ -6,10 +6,12 @@ bool InputSensor::getState() {
 }
 
 void InputSensor::loop() {
-    bool currentState = IsActive();
-    if (currentState != lastState) {
-        xTimerStart(debounceTimer, 0);
-    }
+//    bool currentState = IsActive();
+//    if (currentState != lastState) {
+//        if (xTimerStart(debounceTimer, 0) != pdPASS) {
+//            Serial.println("Failed to start debounce timer");
+//        }
+//    }
 }
 
 bool InputSensor::IsEnabled() {

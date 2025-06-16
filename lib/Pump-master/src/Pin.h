@@ -37,6 +37,7 @@ class PIN {
 
     uint8_t GetPinId();
     uint8_t GetPinNumber();
+    uint8_t GetPinDirection();
     void SetPinNumber(uint8_t,uint8_t = OUTPUT_DIGITAL,bool = ACTIVE_LOW);
     void ResetPinLevel(void); // Reset to inactive level for momentary callback function
 
@@ -60,15 +61,27 @@ class PIN {
         char key[15]; 
         
         snprintf(key, sizeof(key), "d%d_pn", pin_id);  // "device_X_pin_number"
+        if(pin_id == 8) {
+            Serial.printf("Save preference %s\r\n",key);
+        }
         prefs.putUChar(key, pin_number);
 
         snprintf(key, sizeof(key), "d%d_pd", pin_id);  // "device_X_pin_direction"
+        if(pin_id == 8) {
+            Serial.printf("Save preference %s\r\n",key);
+        }
         prefs.putBool(key, pin_direction);
 
         snprintf(key, sizeof(key), "d%d_id", pin_id);  // "device_X_pin_id"
+        if(pin_id == 8) {
+            Serial.printf("Save preference %s\r\n",key);
+        }
         prefs.putUChar(key, pin_id);
 
         snprintf(key, sizeof(key), "d%d_al", pin_id);  // "device_X_active_level"
+        if(pin_id == 8) {
+            Serial.printf("Save preference %s\r\n",key);
+        }
         prefs.putBool(key, active_level);
     }
 
@@ -76,15 +89,30 @@ class PIN {
       char key[15];
 
       snprintf(key, sizeof(key), "d%d_pn", pin_id);
+      if(pin_id == 8) {
+        Serial.printf("Read preference %s\r\n",key);
+      }
       pin_number = prefs.getUChar(key, pin_number);
 
       snprintf(key, sizeof(key), "d%d_pd", pin_id);
+      if(pin_id == 8) {
+        Serial.printf("Read preference %s\r\n",key);
+      }
+
       pin_direction = prefs.getBool(key, pin_id);
 
       snprintf(key, sizeof(key), "d%d_id", pin_id);
-      pin_id = prefs.putUChar(key, pin_id);
+      if(pin_id == 8) {
+        Serial.printf("Read preference Do not apply %s\r\n",key);
+      }
+
+//      pin_id = prefs.getUChar(key, pin_id);
 
       snprintf(key, sizeof(key), "d%d_al", pin_id);
+      if(pin_id == 8) {
+        Serial.printf("Read preference %s\r\n",key);
+      }
+
       active_level = prefs.getBool(key, active_level);
   }
 
@@ -93,7 +121,7 @@ class PIN {
     void Initialize(uint8_t, uint8_t = OUTPUT_DIGITAL, bool = ACTIVE_LOW);
 
     uint8_t pin_number;
-    bool pin_direction;
+    uint8_t pin_direction;
     bool active_level;
     uint8_t pin_id;
 };

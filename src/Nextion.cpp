@@ -105,18 +105,67 @@ void UpdateTFT(void *pvParameters)
     {
       // Do not update switch status during 1s after a change of switch to allow the system to reflect it in real life
       // avoids switches to flicker on/off on the screen
-      if (((unsigned long)(millis() - myNex.LastActionMillis) > 1000) || (myNex.currentPageId==1))
+
+      if (((unsigned long)(millis() - LastUpdatedHome) > 1000)) // Update home page values every second
       {
+      /******************************************
+       * Home Page Minimalist uses global variable (more memory waste but better look when page change)
+       * Updated every second even when not shown so that values are always up to date (except when Nextion sleeps)
+       * ****************************************/
+        LastUpdatedHome = millis();
         WriteSwitches();
+        // Date and Time
+        sprintf(temp, PSTR("%02d:%02d:%02d"), hour(), minute(), second());
+        myNex.writeStr(F(GLOBAL".vaTime.txt"),temp);
+        sprintf(temp, PSTR("%02d/%02d/%02d"), day(), month(), year()-2000);
+        myNex.writeStr(F(GLOBAL".vaDate.txt"),temp);
+
+        // PSI difference with Threshold
+        if (storage.PSIValue <= storage.PSI_MedThreshold) {
+          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 0);
+        } else if (storage.PSIValue > storage.PSI_HighThreshold){
+          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 4);
+        } else {
+          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 2);
+        }
+
+        // pH & Orp niddle position
+        if(abs(storage.PhValue-storage.Ph_SetPoint) <= 0.1) 
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),0);
+        if((storage.PhValue-storage.Ph_SetPoint) > 0.1 && (storage.PhValue-storage.Ph_SetPoint) <= 0.3)  
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),1);
+        if((storage.PhValue-storage.Ph_SetPoint) < -0.1 && (storage.PhValue-storage.Ph_SetPoint) >= -0.3)  
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),-1);
+        if((storage.PhValue-storage.Ph_SetPoint) > 0.3)  
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),2);
+        if((storage.PhValue-storage.Ph_SetPoint) < -0.3)  
+          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),-2);
+
+        if(abs(storage.OrpValue-storage.Orp_SetPoint) <= 70.) 
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),0);
+        if((storage.OrpValue-storage.Orp_SetPoint) > 70. && (storage.OrpValue-storage.Orp_SetPoint) <= 200.)  
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),1);
+        if((storage.OrpValue-storage.Orp_SetPoint) < -70. && (storage.OrpValue-storage.Orp_SetPoint) >= -200.)  
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),-1);
+        if((storage.OrpValue-storage.Orp_SetPoint) > 200.)  
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),2);    
+        if((storage.OrpValue-storage.Orp_SetPoint) < -200.)  
+          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),-2); 
+
+        // pH & Orp Values
+        snprintf_P(temp,sizeof(temp),PSTR("%4.2f"),storage.PhValue);
+        myNex.writeStr(F(GLOBAL".vapH.txt"),temp);
+        snprintf_P(temp,sizeof(temp),PSTR("%3.0f"),storage.OrpValue);
+        myNex.writeStr(F(GLOBAL".vaOrp.txt"),temp);
+  
+        // Water Temperature
+        snprintf_P(temp,sizeof(temp),PSTR("%4.1f°C"),storage.WaterTemp);
+        if(myNex.currentPageId==ENP_HOME800) {
+          myNex.writeStr(F("pageMenu800.tTopRight.txt"),temp);
+        } else if(myNex.currentPageId==ENP_H800_OV1) {
+          myNex.writeStr(F("pageOVHome.tTopRight.txt"),temp);
+        }
       }
-
-      // New Main Home Page Intelligent Series
-      if (myNex.currentPageId==ENP_HOME800)
-      {
-
-
-      }
-
 
       if(myNex.currentPageId==ENP_SPLASH || myNex.currentPageId==ENP_HOME)    //Splash & Home
       {
@@ -190,64 +239,6 @@ void UpdateTFT(void *pvParameters)
           myNex.writeNum(F("pageHome.vaOrpErr.val"),2);
       }
 
-
-      if (((unsigned long)(millis() - LastUpdatedHome) > 1000)) // Update home page values every second
-      {
-      /******************************************
-       * Home Page Minimalist uses global variable (more memory waste but better look when page change)
-       * Updated every second even when not shown so that values are always up to date (except when Nextion sleeps)
-       * ****************************************/
-        LastUpdatedHome = millis();
-        // Date and Time
-        sprintf(temp, PSTR("%02d:%02d:%02d"), hour(), minute(), second());
-        myNex.writeStr(F(GLOBAL".vaTime.txt"),temp);
-        sprintf(temp, PSTR("%02d/%02d/%02d"), day(), month(), year()-2000);
-        myNex.writeStr(F(GLOBAL".vaDate.txt"),temp);
-
-        // PSI difference with Threshold
-        if (storage.PSIValue <= storage.PSI_MedThreshold) {
-          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 0);
-        } else if (storage.PSIValue > storage.PSI_HighThreshold){
-          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 4);
-        } else {
-          myNex.writeNum(F("pageMenu800.vaPSINiddle.val"), 2);
-        }
-
-        // pH & Orp niddle position
-        if(abs(storage.PhValue-storage.Ph_SetPoint) <= 0.1) 
-          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),0);
-        if((storage.PhValue-storage.Ph_SetPoint) > 0.1 && (storage.PhValue-storage.Ph_SetPoint) <= 0.3)  
-          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),1);
-        if((storage.PhValue-storage.Ph_SetPoint) < -0.1 && (storage.PhValue-storage.Ph_SetPoint) >= -0.3)  
-          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),-1);
-        if((storage.PhValue-storage.Ph_SetPoint) > 0.3)  
-          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),2);
-        if((storage.PhValue-storage.Ph_SetPoint) < -0.3)  
-          myNex.writeNum(F("pageMenu800.vaPHNiddle.val"),-2);
-
-        if(abs(storage.OrpValue-storage.Orp_SetPoint) <= 70.) 
-          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),0);
-        if((storage.OrpValue-storage.Orp_SetPoint) > 70. && (storage.OrpValue-storage.Orp_SetPoint) <= 200.)  
-          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),1);
-        if((storage.OrpValue-storage.Orp_SetPoint) < -70. && (storage.OrpValue-storage.Orp_SetPoint) >= -200.)  
-          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),-1);
-        if((storage.OrpValue-storage.Orp_SetPoint) > 200.)  
-          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),2);    
-        if((storage.OrpValue-storage.Orp_SetPoint) < -200.)  
-          myNex.writeNum(F("pageMenu800.vaOrpNiddle.val"),-2); 
-
-        // pH & Orp Values
-        snprintf_P(temp,sizeof(temp),PSTR("%4.2f"),storage.PhValue);
-        myNex.writeStr(F(GLOBAL".vapH.txt"),temp);
-        snprintf_P(temp,sizeof(temp),PSTR("%3.0f"),storage.OrpValue);
-        myNex.writeStr(F(GLOBAL".vaOrp.txt"),temp);
-  
-        // Water Temperature
-        snprintf_P(temp,sizeof(temp),PSTR("%4.1f°C"),storage.WaterTemp);
-        myNex.writeStr(F("pageMenu800.tTopRight.txt"),temp);
-      }
-
-      
       if(myNex.currentPageId == ENP_MENU)     //Settings Menu
       {
         period=PT10/2;  // Accelerate TFT refresh when browsing menu
@@ -536,7 +527,7 @@ void UpdateTFT(void *pvParameters)
         for (uint8_t i = 0; i < DEVICE_POOL_LEVEL; i++)
         {
           PIN* equi = PoolDeviceManager.GetDevice(i);
-
+          
           // Set PIN Numbers
           snprintf_P(temp,sizeof(temp),PSTR("%d"),equi->GetPinNumber());
           strcat(SrcPINs,temp);
@@ -557,8 +548,6 @@ void UpdateTFT(void *pvParameters)
 
           // Set ISRELAY (Relays do not support Interlock so should be greyed out)  
           SrcISRELAY_Bitmap |= (equi->IsRelay() & 1) << i;
-
-          i++;
         }
         snprintf_P(temp_command,sizeof(temp_command),PSTR("vaSrcACTIVE.val"),i);
         myNex.writeNum(temp_command,SrcACTIVE_Bitmap);

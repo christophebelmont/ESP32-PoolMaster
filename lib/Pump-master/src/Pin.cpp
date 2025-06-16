@@ -12,8 +12,8 @@ PIN::PIN(uint8_t _pin_number, uint8_t _pin_id, uint8_t _pin_direction, bool _act
 void PIN::Initialize(uint8_t _pin_number, uint8_t _pin_direction, bool _active_level)
 {
   // Set variables
-  if((_pin_number != pin_number) && ((pin_direction==OUTPUT_DIGITAL)||(pin_direction==OUTPUT_PWM))) { // If we changed port
-    if(pin_number != 0) {
+  if((_pin_number != pin_number) && (_pin_direction != INPUT_DIGITAL) && ((pin_direction==OUTPUT_DIGITAL)||(pin_direction==OUTPUT_PWM))) { // If we changed port
+    if(_pin_number != 0) {
       digitalWrite(pin_number,!active_level); // Inactivate the previous port
       // IMPORTANT NOTE: Always change pin number in following order
       //  ->SetPinNumber
@@ -35,7 +35,7 @@ void PIN::Begin()
     if(pin_direction==OUTPUT_DIGITAL) {  
       pinMode(pin_number, OUTPUT);
       digitalWrite(pin_number,!active_level); // Initialize the port to inactive
-    } else  if(pin_direction==INPUT_DIGITAL) {
+    } else if(pin_direction==INPUT_DIGITAL) {
       pinMode(pin_number, INPUT);
     }
   }
@@ -91,6 +91,12 @@ uint8_t PIN::GetPinNumber()
   return pin_number;
 }
 
+// Return pin direction related to this relay
+uint8_t PIN::GetPinDirection()
+{
+  return pin_direction;
+}
+
 // Set the pin number for this relay
 void PIN::SetPinNumber(uint8_t _pin_number, uint8_t _pin_direction, bool _active_level)
 {
@@ -101,7 +107,6 @@ void PIN::SetPinNumber(uint8_t _pin_number, uint8_t _pin_direction, bool _active
 //relay status
 bool PIN::IsActive()
 {
-  //Serial.printf("Trying to read state of PIN %d %d %d\n\r",pin_number, digitalRead(pin_number), active_level);  
   if (pin_number != 0) {
     return (digitalRead(pin_number) == active_level);
   } else {

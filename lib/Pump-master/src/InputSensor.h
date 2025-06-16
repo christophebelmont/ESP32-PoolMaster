@@ -14,16 +14,16 @@ NB: all timings are in milliseconds
 #include "Pin.h"
 
 #include <Arduino.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/timers.h"
+//#include "freertos/FreeRTOS.h"
+//#include "freertos/timers.h"
 
 #define NO_INTERLOCK 255 
 
 class InputSensor : public PIN {
   public:
     InputSensor(uint8_t _pin_number, uint8_t _pin_id, uint8_t _active_level = ACTIVE_LOW) 
-      : PIN(_pin_number, _pin_id, INPUT_DIGITAL, _active_level) {
-        debounceTimer = xTimerCreate("DebounceTimer", pdMS_TO_TICKS(50), pdFALSE, this, debounceCallback);
+      : PIN(_pin_number, _pin_id, (uint8_t)INPUT_DIGITAL, _active_level) {
+        //debounceTimer = xTimerCreate("DebounceTimer", pdMS_TO_TICKS(50), pdFALSE, this, debounceCallback);
     }
 
     bool getState();
@@ -50,12 +50,13 @@ class InputSensor : public PIN {
 
   private:
     bool lastState;
-    TimerHandle_t debounceTimer;
+    //TimerHandle_t debounceTimer;
 
-    static void debounceCallback(TimerHandle_t xTimer) {
-        InputSensor* instance = static_cast<InputSensor*>(pvTimerGetTimerID(xTimer));
-        instance->lastState = instance->IsActive(); // Utilise IsActive() pour obtenir l'état après debounce
-    }
+
+    //static void debounceCallback(TimerHandle_t xTimer) {
+    //    InputSensor* instance = static_cast<InputSensor*>(pvTimerGetTimerID(xTimer));
+    //    instance->lastState = instance->IsActive(); // Utilise IsActive() pour obtenir l'état après debounce
+    //}
 };
 
 #endif

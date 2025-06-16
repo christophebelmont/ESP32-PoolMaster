@@ -312,13 +312,14 @@ void PoolMaster(void *pvParameters)
   } // End of Filtration Pimp IS Running
 
 // Check water level (HIGH means that jumper is opened)
-if((PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive()) && (!FillingPump.IsRunning())) {
+// If Pool Level is Active, this means Water Level is OK.
+if((!PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive()) && (!FillingPump.IsRunning())) {
   FillingPump.ResetUpTime();  // We are interested in computing uptime from now
   FillingPump.Start();
 } 
 
 // Stop Pump if level back to normal and minimum runtime reached
-if(FillingPump.IsRunning() && (!PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive()) && (FillingPump.UpTime > (storage.PumpsConfig[PUMP_FILL].pump_min_uptime*1000))) {
+if(FillingPump.IsRunning() && (PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive()) && (FillingPump.UpTime > (storage.PumpsConfig[PUMP_FILL].pump_min_uptime*1000))) {
   FillingPump.Stop();
 }
 

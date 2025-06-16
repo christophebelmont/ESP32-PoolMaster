@@ -47,6 +47,7 @@ class DeviceManager {
                 for (const auto& subentry : devices) {
                     if(devices[_index]->GetInterlockId() == subentry.second->GetPinId()) {
                         devices[_index]->SetInterlock(subentry.second); // Set interlock for the device
+                        Serial.printf("Unique Set interlock for device %d to %d\r\n", _index, subentry.second->GetPinId());
                     }
                 }
             }
@@ -58,6 +59,7 @@ class DeviceManager {
                     for (const auto& subentry : devices) {
                         if(entry.second->GetInterlockId() == subentry.second->GetPinId()) {
                             entry.second->SetInterlock(subentry.second); // Set interlock for the device
+                            Serial.printf("Global Set interlock for device %d to %d\r\n", entry.second->GetPinId(), subentry.second->GetPinId());
                         }
                     }
                 }
