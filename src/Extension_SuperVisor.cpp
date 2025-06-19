@@ -105,6 +105,8 @@ void SuperVisor_Task(void *pvParameters)
     if (strlen(newSSID))
           WiFi.begin(newSSID, newPass);
     else  WiFi.reconnect();
+    MDNS.addService("http", "tcp", 80);
+    if (strlen(newHostname)) MDNS.begin(newHostname);  
     restartwifi = false;
   }
 
@@ -208,7 +210,12 @@ void SuperVisor_Info_Task(void *pvParameters)
     [ 4] = ".*..", [ 5] = ".*.*", [ 6] = ".**.", [ 7] = ".***",
     [ 8] = "*...", [ 9] = "*..*", [10] = "*.*.", [11] = "*.**",
     [12] = "**..", [13] = "**.*", [14] = "***.", [15] = "****", };
-  sprintf(buffer1, "%s%s", bit_rep[StatusLEDs >> 4], bit_rep[StatusLEDs & 0x0F]);
+  char part1 =  StatusLEDs & 0x0F;
+  char part2 = (StatusLEDs & 0x80) >> 7;
+  part2     |= (StatusLEDs & 0x40) >> 5;
+  part2     |= (StatusLEDs & 0x20) >> 3;
+  part2     |= (StatusLEDs & 0x10) >> 1;
+  sprintf(buffer1, "%s%s", bit_rep[part2], bit_rep[part1]);
   index += addInfo(buffer+index, "LED",             buffer1);
 
   Serial.printf("%c%s\n", _DELIMITER_[0], buffer);
