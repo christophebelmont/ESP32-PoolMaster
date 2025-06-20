@@ -55,6 +55,7 @@ void SuperVisor_Message(const char *value, char* result)
   }
 
   int i=0;
+  result[i] = '\0';
   while (Wire.available()) {
       result[i++] = (char)Wire.read(); 
       if (i>=I2C_MAXMESSAGE) i=I2C_MAXMESSAGE-1;
