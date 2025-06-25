@@ -2,9 +2,10 @@
 #include "InputSensor.h"
 
 bool InputSensor::getState() {
-    return IsActive(); // Utilise la fonction héritée pour vérifier l'état actif
+    return currentState;
 }
 
+//check status of input pins
 void InputSensor::loop() {
 //    bool currentState = IsActive();
 //    if (currentState != lastState) {
@@ -12,7 +13,16 @@ void InputSensor::loop() {
 //            Serial.println("Failed to start debounce timer");
 //        }
 //    }
+    // Implement the loop functionality here
+    // For input pins, you might want to read the state or perform some action
+    // For example, you could log the state of the pin
+    currentState = IsActive();
+    if(currentState != previous_state) {
+      previous_state = currentState;
+      //Serial.printf("PIN %d state changed: %d (Active Level is %d)\r\n", GetPinNumber(), currentState, GetActiveLevel());
+    }
 }
+
 
 bool InputSensor::IsEnabled() {
     return getState();

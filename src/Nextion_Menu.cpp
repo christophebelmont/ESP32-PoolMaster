@@ -125,7 +125,7 @@ void NexMenu_Loop(EasyNex& _myNex)
             //Update Values
             snprintf_P(temp,sizeof(temp),PSTR("%3.1f"),storage.Ph_SetPoint);
             _myNex.writeStr(F("vaValueSrc_1.txt"),temp);
-            snprintf_P(temp,sizeof(temp),PSTR("%3.1f"),storage.PumpsConfig[PUMP_PH].pump_flow_rate);
+            snprintf_P(temp,sizeof(temp),PSTR("%3.1f"),PhPump.GetFlowRate());
             _myNex.writeStr(F("vaValueSrc_2.txt"),temp);
             
         break;
@@ -142,7 +142,7 @@ void NexMenu_Loop(EasyNex& _myNex)
 
             snprintf_P(temp,sizeof(temp),PSTR("%3.0f"),storage.Orp_SetPoint);
             _myNex.writeStr(F("vaValueSrc_1.txt"),temp);
-            snprintf_P(temp,sizeof(temp),PSTR("%3.1f"),storage.PumpsConfig[PUMP_CHL].pump_flow_rate);
+            snprintf_P(temp,sizeof(temp),PSTR("%3.1f"),ChlPump.GetFlowRate());
             _myNex.writeStr(F("vaValueSrc_2.txt"),temp);
             
         break;
@@ -241,9 +241,9 @@ void NexMenu_Loop(EasyNex& _myNex)
             if(_myNex.hasPageChanged()) {}
 
             //Update Values
-            snprintf_P(temp,sizeof(temp),PSTR("%d"),storage.PumpsConfig[PUMP_FILL].pump_min_uptime / 60);
+            snprintf_P(temp,sizeof(temp),PSTR("%d"),FillingPump.MinUpTime / 60);
             _myNex.writeStr(F("vaValueSrc_0.txt"),temp);
-            snprintf_P(temp,sizeof(temp),PSTR("%d"),storage.PumpsConfig[PUMP_FILL].pump_max_uptime / 60);
+            snprintf_P(temp,sizeof(temp),PSTR("%d"),FillingPump.MinUpTime / 60);
             _myNex.writeStr(F("vaValueSrc_1.txt"),temp);
             
         break;

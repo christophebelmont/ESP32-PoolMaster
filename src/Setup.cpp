@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include "Config.h"
 #include "PoolMaster.h"
+#include "State_Machine.h"         // State machine for PoolMaster
 
 #ifdef SIMU
 bool init_simu = true;
@@ -50,18 +51,7 @@ StoreStruct storage =
   "",
   587,
   "", "","","",  
-  //FILLING_PUMP_MINI_DURATION,FILLING_PUMP_MAXI_DURATION,
-  0,
-  {
-    {  FILTRATION, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING, 0., 0., 100., NO_TANK, 0, 0},
-    {  PH_PUMP, OUTPUT_DIGITAL, 0,ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., PH_LEVEL, 0, PH_PUMP_MAX_UPTIME*60},
-    {  CHL_PUMP, OUTPUT_DIGITAL, 0,ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., CHL_LEVEL, 0, CHL_PUMP_MAX_UPTIME*60},
-    {  ROBOT, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  SWG_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  FILL_PUMP, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, FILLING_PUMP_MIN_UPTIME*60, FILLING_PUMP_MAX_UPTIME*60},
-    {  PROJ, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  SPARE, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-   }
+  0
 };
 #else
 StoreStruct storage =
@@ -84,18 +74,7 @@ StoreStruct storage =
   "",
   587,
   "", "","","",  
-  //FILLING_PUMP_MIN_UPTIME,FILLING_PUMP_MAX_UPTIME,
-  0,
-  {
-    {  FILTRATION, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING, 0., 0., 100., NO_TANK, 0, 0},
-    {  PH_PUMP, OUTPUT_DIGITAL, 0,ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., PH_LEVEL, 0, PH_PUMP_MAX_UPTIME*60},
-    {  CHL_PUMP, OUTPUT_DIGITAL, 0,ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., CHL_LEVEL, 0, CHL_PUMP_MAX_UPTIME*60},
-    {  ROBOT, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  SWG_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  FILL_PUMP, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, FILLING_PUMP_MIN_UPTIME*60, FILLING_PUMP_MAX_UPTIME*60},
-    {  PROJ, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  SPARE, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-   }
+  0
 };
 #endif
 tm timeinfo;
@@ -144,27 +123,28 @@ Preferences nvs;
 //    5/ Tankvolume is used to compute the percentage of tank used/remaining
 // IMPORTANT NOTE: second argument is ID and MUST correspond to the equipment index in the "Pool_Equipment" vector
 // FiltrationPump: This Pump controls the filtration, no tank attached and not interlocked to any element. SSD relay attached works with HIGH level.
-Pump FiltrationPump(FILTRATION,0,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
+
+Pump FiltrationPump(FILTRATION,DEVICE_FILTPUMP);
 // pHPump: This Pump has no low-level switch so remaining volume is estimated. It is interlocked with the relay of the FilrationPump
 //Pump PhPump(PH_PUMP, PH_LEVEL, ACTIVE_LOW, MODE_LATCHING, storage.pHPumpFR, storage.pHTankVol, storage.AcidFill);
-Pump PhPump(PH_PUMP,1,PH_LEVEL,ACTIVE_LOW,MODE_LATCHING,1.5,20.,100.);
+Pump PhPump(PH_PUMP,DEVICE_PH_PUMP,PH_LEVEL);
 // ChlPump: This Pump has no low-level switch so remaining volume is estimated. It is interlocked with the relay of the FilrationPump
 //Pump ChlPump(CHL_PUMP, CHL_LEVEL, ACTIVE_LOW, MODE_LATCHING, storage.ChlPumpFR, storage.ChlTankVol, storage.ChlFill);
-Pump ChlPump(CHL_PUMP,2,CHL_LEVEL,ACTIVE_LOW,MODE_LATCHING,1.5,20.,100.);
+Pump ChlPump(CHL_PUMP,DEVICE_CHL_PUMP,CHL_LEVEL);
 // RobotPump: This Pump is not injecting liquid so tank is associated to it. It is interlocked with the relay of the FilrationPump
-Pump RobotPump(ROBOT,3,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
+Pump RobotPump(ROBOT,DEVICE_ROBOT);
 // SWG: This Pump is associated with a Salt Water Chlorine Generator. It turns on and off the equipment to produce chlorine.
 // It has no tank associated. It is interlocked with the relay of the FilrationPump
-Pump SWGPump(SWG_PUMP,4,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
+Pump SWGPump(SWG_PUMP,DEVICE_SWG);
 // Filling Pump: This pump is autonomous, not interlocked with filtering pump.
-Pump FillingPump(FILL_PUMP,5,NO_TANK,ACTIVE_LOW,MODE_LATCHING,0.,0.,100.);
+Pump FillingPump(FILL_PUMP,DEVICE_FILLING_PUMP);
 
 // The Relays class to activate and deactivate digital pins
-Relay RELAYR0(PROJ,6,OUTPUT_DIGITAL,ACTIVE_LOW,MODE_LATCHING); // Relay for the projector
-Relay RELAYR1(SPARE,7,OUTPUT_DIGITAL,ACTIVE_LOW,MODE_LATCHING); // Relay for the spare
+Relay RELAYR0(PROJ,DEVICE_RELAY0,OUTPUT_DIGITAL); // Relay for the projector
+Relay RELAYR1(SPARE,DEVICE_RELAY1,OUTPUT_DIGITAL); // Relay for the spare
 
 // Input ports
-InputSensor PoolWaterLevelSensor(POOL_LEVEL, 8); // Pool water level sensor (pool level ok if HIGH and pool level problem if LOW)
+InputSensor PoolWaterLevelSensor(POOL_LEVEL, DEVICE_POOL_LEVEL); // Pool water level sensor (pool level ok if HIGH and pool level problem if LOW)
 
 // List of all the equipment of PoolMaster
 //std::vector<PIN*> Pool_Equipment;
@@ -280,19 +260,26 @@ void setup()
   // Warning: pins used here have no pull-ups, provide external ones
   pinMode(CHL_LEVEL, INPUT);
   pinMode(PH_LEVEL, INPUT);
-  //pinMode(POOL_LEVEL, INPUT);
 
-  // Fill the table of equipments (FiltrationPump is index [0])
-  // save their configs
-  // The order MUST correspond to the index when the Pumps and Relays objects are created
-  /*Pool_Equipment.push_back(&FiltrationPump);
-  Pool_Equipment.push_back(&PhPump);
-  Pool_Equipment.push_back(&ChlPump);
-  Pool_Equipment.push_back(&RobotPump);
-  Pool_Equipment.push_back(&SWGPump);
-  Pool_Equipment.push_back(&FillingPump);
-  Pool_Equipment.push_back(&RELAYR0);
-  Pool_Equipment.push_back(&RELAYR1);*/
+  // Initialize devices' names
+  FiltrationPump.SetName("Filtration Pump");
+  PhPump.SetName("pH Pump");
+  ChlPump.SetName("Chlorine Pump");
+  RobotPump.SetName("Robot Pump");
+  SWGPump.SetName("SWG Pump");
+  FillingPump.SetName("Filling Pump");
+
+  // Sets all default values for the pumps. If preferences are loaded from NVS, these values will be overwritten on a value per value basis.
+  PhPump.SetInterlock(DEVICE_FILTPUMP); // pH Pump interlocked with Filtration Pump
+  ChlPump.SetInterlock(DEVICE_FILTPUMP); // Chlorine Pump interlocked with Filtration Pump
+  RobotPump.SetInterlock(DEVICE_FILTPUMP); // Robot Pump interlocked with Filtration Pump
+  SWGPump.SetInterlock(DEVICE_FILTPUMP); // SWG Pump interlocked
+
+  // Initialize the state machine handlers for the pumps
+  FillingPump.SetHandlers(FillingPump_StartCondition,FillingPump_StopCondition,FillingPump_StartAction,FillingPump_StopAction);
+  FiltrationPump.SetHandlers(FiltrationPump_StartCondition,FiltrationPump_StopCondition,FiltrationPump_StartAction,FiltrationPump_StopAction);
+  RobotPump.SetHandlers(RobotPump_StartCondition,RobotPump_StopCondition,RobotPump_StartAction,RobotPump_StopAction);
+  SWGPump.SetHandlers(SWGPump_StartCondition,SWGPump_StopCondition,SWGPump_StartAction,SWGPump_StopAction);
 
   // Fill DeviceManager with the list of devices
   PoolDeviceManager.AddDevice(DEVICE_FILTPUMP,&FiltrationPump);
@@ -305,39 +292,10 @@ void setup()
   PoolDeviceManager.AddDevice(DEVICE_RELAY1,&RELAYR1);
   PoolDeviceManager.AddDevice(DEVICE_POOL_LEVEL,&PoolWaterLevelSensor);
 
-  // Load configuration parameters from NVS
+  // Load configuration parameters from NVS for all devices
   PoolDeviceManager.LoadPreferences();
   PoolDeviceManager.InitDevicesInterlock();
   PoolDeviceManager.Begin();
-
-  // Assign globals configuration parameters to pumps (pin number, high/low level and operation mode)
-  /*int i=0;
-  for(auto& equi: Pool_Equipment)
-  {
-    equi->SetPinNumber(storage.PumpsConfig[i].pin_number,storage.PumpsConfig[i].pin_direction, storage.PumpsConfig[i].pin_active_level);
-    equi->SetOperationMode(storage.PumpsConfig[i].relay_operation_mode);
-    equi->SetFlowRate(storage.PumpsConfig[i].pump_flow_rate);
-    equi->SetTankVolume(storage.PumpsConfig[i].tank_vol);
-    equi->SetTankFill(storage.PumpsConfig[i].tank_fill);
-    equi->SetTankLevelPIN(storage.PumpsConfig[i].tank_level_pin);
-    equi->SetMaxUpTime(storage.PumpsConfig[i].pump_max_uptime * 1000);
-
-    // Initialize the interlocks
-    if(storage.PumpsConfig[i].pin_interlock != NO_INTERLOCK)
-    {
-      for(auto equi_lock: Pool_Equipment)
-      {
-        if(equi_lock->GetPinId() == storage.PumpsConfig[i].pin_interlock)
-        {
-          equi->SetInterlock(equi_lock);
-          Debug.print(DBG_INFO,"Configure Interlock %d = %d",i, Pool_Equipment[i]->GetInterlockId());
-        }
-      }
-    }
-    // Start Pump Operation
-    equi->Begin();
-    i++;
-  }*/
 
   // Initialize watch-dog
   esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -392,13 +350,7 @@ void setup()
   SetPhPID (false);
   SetOrpPID(false);
 
-  // Robot pump off at start
-  //RobotPump.Stop();
-  
-  // Pool Filling pump off at start
-  //FillingPump.Stop();
-
-  // Create queue for external commands
+   // Create queue for external commands
   queueIn = xQueueCreate((UBaseType_t)QUEUE_ITEMS_NBR,(UBaseType_t)QUEUE_ITEM_SIZE);
 
   // Create loop tasks in the scheduler.
@@ -694,18 +646,7 @@ bool loadConfig()
   
   storage.BuzzerOn              = nvs.getBool("BuzzerOn",true);
 
-  // Retreive Pumps Config if not existent take default
-  if(nvs.getBytes("PumpsConf", &storage.PumpsConfig, sizeof(storage.PumpsConfig)) == 0) {
-    storage.PumpsConfig[0] = {  FILTRATION, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING, 0., 0., 100., NO_TANK, 0, 0};
-    storage.PumpsConfig[1] = {  PH_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., PH_LEVEL, 0, PH_PUMP_MAX_UPTIME*60};
-    storage.PumpsConfig[2] = {  CHL_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., CHL_LEVEL, 0, CHL_PUMP_MAX_UPTIME*60};
-    storage.PumpsConfig[3] = {  ROBOT, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0};
-    storage.PumpsConfig[4] = {  SWG_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0};
-    storage.PumpsConfig[5] = {  FILL_PUMP, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, FILLING_PUMP_MIN_UPTIME, FILLING_PUMP_MAX_UPTIME};
-    storage.PumpsConfig[6] = {  PROJ, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0};
-    storage.PumpsConfig[7] = {  SPARE, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0};
-  }
- 
+
   nvs.end();
 
   Debug.print(DBG_INFO,"%d",storage.ConfigVersion);
@@ -804,7 +745,6 @@ bool saveConfig()
   i += nvs.putString("SMTP_RECIPIENT",storage.SMTP_RECIPIENT); 
   i += nvs.putBool("BuzzerOn",storage.BuzzerOn);
 
-  i += nvs.putBytes("PumpsConf", (byte*)(&storage.PumpsConfig), sizeof(storage.PumpsConfig));
 
   nvs.end();
 
@@ -813,14 +753,7 @@ bool saveConfig()
 
 }
 
-bool savePumpsConf()
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putBytes("PumpsConf", (byte*)(&storage.PumpsConfig), sizeof(storage.PumpsConfig));
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d (freeentries %d)\n",i,whatsLeft);
-  return(i == sizeof(storage.PumpsConfig));
-}
+
 
 // functions to save any type of parameter (4 overloads with same name but different arguments)
 uint8_t loadParam(const char* key, uint8_t val)

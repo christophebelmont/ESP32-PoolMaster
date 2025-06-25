@@ -42,24 +42,26 @@ class DeviceManager {
     {
          if(_index != PREF_LOADSAVE_ALL_DEVICES) {
             if(devices[_index]->GetInterlockId() == NO_INTERLOCK) {
+                //Serial.printf("Unique Set interlock for device %d to 255\r\n", devices[_index]->GetPinId());
                 devices[_index]->SetInterlock(nullptr); // Set interlock for the device
             } else {
                 for (const auto& subentry : devices) {
                     if(devices[_index]->GetInterlockId() == subentry.second->GetPinId()) {
                         devices[_index]->SetInterlock(subentry.second); // Set interlock for the device
-                        Serial.printf("Unique Set interlock for device %d to %d\r\n", _index, subentry.second->GetPinId());
+                        //Serial.printf("Unique Set interlock for device %d to %d\r\n", _index, subentry.second->GetPinId());
                     }
                 }
             }
          } else {
             for (const auto& entry : devices) {
                 if(entry.second->GetInterlockId() == NO_INTERLOCK) {
+                    //Serial.printf("Global Set interlock for device %d to 255\r\n", entry.second->GetPinId());
                     entry.second->SetInterlock(nullptr); // Set interlock for the device
                 } else {
                     for (const auto& subentry : devices) {
                         if(entry.second->GetInterlockId() == subentry.second->GetPinId()) {
                             entry.second->SetInterlock(subentry.second); // Set interlock for the device
-                            Serial.printf("Global Set interlock for device %d to %d\r\n", entry.second->GetPinId(), subentry.second->GetPinId());
+                            //Serial.printf("Global Set interlock for device %d to %d\r\n", entry.second->GetPinId(), subentry.second->GetPinId());
                         }
                     }
                 }
@@ -113,7 +115,7 @@ class DeviceManager {
 
     void Begin() {
         for (const auto& entry : devices) {
-            entry.second->Begin(); // Appelle loop() sur chaque appareil enregistré
+            entry.second->Begin(); // Appelle Begin() sur chaque appareil enregistré
         }
     }
 

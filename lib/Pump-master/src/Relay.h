@@ -58,23 +58,19 @@ class Relay : public PIN {
     void SetInterlock(uint8_t);
     uint8_t GetInterlockId(void);
     bool IsRelay(void);
+    void SavePreferences(Preferences& prefs);
+    void LoadPreferences(Preferences& prefs);
 
-    void SavePreferences(Preferences& prefs) override {
-        PIN::SavePreferences(prefs);
-
-        char key[15];
-        snprintf(key, sizeof(key), "d%d_om", GetPinId());  // "device_X_operation_mode"
-        prefs.putBool(key, operation_mode);
+    void SetHandlers(std::function<bool()> _handler1, std::function<bool()> _handler2, std::function<void()> _handler3, std::function<void()> _handler4) override {
+        shouldStartHandler = _handler1;
+        shouldStopHandler = _handler2;
+        onStartHandler = _handler3;
+        onStopHandler = _handler4;
     }
-
-    void LoadPreferences(Preferences& prefs) override {
-        PIN::LoadPreferences(prefs);
-
-        char key[15];
-        snprintf(key, sizeof(key), "d%d_om", GetPinId());
-        operation_mode = prefs.getBool(key, operation_mode);
-    }
-
+    void SetShouldStartHandler(std::function<bool()> _handler) override { shouldStartHandler = _handler; }
+    void SetShouldStopHandler(std::function<bool()> _handler) override { shouldStopHandler = _handler; }
+    void SetOnStartHandler(std::function<void()> _handler) override { onStartHandler  = _handler; }
+    void SetOnStopHandler(std::function<void()> _handler) override { onStopHandler  = _handler; }
 
   private:
     void Initialize(bool = MODE_LATCHING);

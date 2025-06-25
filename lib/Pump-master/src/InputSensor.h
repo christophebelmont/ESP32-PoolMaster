@@ -48,8 +48,21 @@ class InputSensor : public PIN {
     uint8_t GetInterlockId(void);
     bool IsRelay(void);
 
+    void SetHandlers(std::function<bool()> _handler1, std::function<bool()> _handler2, std::function<void()> _handler3, std::function<void()> _handler4) override {
+        shouldStartHandler = _handler1;
+        shouldStopHandler = _handler2;
+        onStartHandler = _handler3;
+        onStopHandler = _handler4;
+    }
+    void SetShouldStartHandler(std::function<bool()> _handler) {};
+    void SetShouldStopHandler(std::function<bool()> _handler) {};
+    void SetOnStartHandler(std::function<void()> _handler) {};
+    void SetOnStopHandler(std::function<void()> _handler) {};
+
   private:
-    bool lastState;
+    bool currentState = false; // Current state of the input sensor (avoid reading every time)
+    //bool lastState; // Used for debouncing
+    bool previous_state = false; // Used to detect changes in state
     //TimerHandle_t debounceTimer;
 
 

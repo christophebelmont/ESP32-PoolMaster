@@ -465,6 +465,7 @@ void OrpRegulation(void *pvParameters)
 void TempInit()
 {
   bool error = false;
+  char buf[64];
   // Start up the library
   sensors_W.begin();
   sensors_W.begin(); // two times to work-around of a OneWire library bug for enumeration
@@ -479,12 +480,16 @@ void TempInit()
     error = true;
   }  
   else {
-    Serial.printf("DS18B20_W: ");
+    sprintf(buf,"DS18B20_W: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+      DS18B20_W[0],DS18B20_W[1],DS18B20_W[2],DS18B20_W[3],
+      DS18B20_W[4],DS18B20_W[5],DS18B20_W[6],DS18B20_W[7]);
+    Debug.print(DBG_INFO,"%s",buf);
+    /*Serial.printf("DS18B20_W: ");
     for(uint8_t i=0;i<8;i++){
       Serial.printf("%02x",DS18B20_W[i]);
       if(i<7) Serial.print(":");
         else Serial.printf("\r\n");
-    }
+    }*/
   }  
   if (!sensors_A.getAddress(DS18B20_A, 0)) 
   {
@@ -492,12 +497,16 @@ void TempInit()
     error = true;
   }  
   else {
-    Serial.printf("DS18B20_A: ");
+    sprintf(buf,"DS18B20_A: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+      DS18B20_A[0],DS18B20_A[1],DS18B20_A[2],DS18B20_A[3],
+      DS18B20_A[4],DS18B20_A[5],DS18B20_A[6],DS18B20_A[7]);
+    Debug.print(DBG_INFO,"%s",buf);
+    /*Serial.printf("DS18B20_A: ");
     for(uint8_t i=0;i<8;i++){
       Serial.printf("%02x",DS18B20_A[i]);
       if(i<7) Serial.print(":");
         else Serial.printf("\r\n");
-    }
+    }*/
   } 
 
   if(!error) 

@@ -261,16 +261,12 @@ void p_WSetPoint(StaticJsonDocument<250>  &_jsonsdoc) {
 //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
 
 void p_pHTank(StaticJsonDocument<250>  &_jsonsdoc) {
-    //storage.PumpsConfig[PUMP_PH].tank_vol = (double)_jsonsdoc[F("pHTank")][0];
-    //storage.PumpsConfig[PUMP_PH].tank_fill = (double)_jsonsdoc[F("pHTank")][1];
     PhPump.SetTankVolume((double)_jsonsdoc[F("pHTank")][0]);
     PhPump.SetTankFill((double)_jsonsdoc[F("pHTank")][1]);
     PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
     PublishSettings();
 }
 void p_ChlTank(StaticJsonDocument<250>  &_jsonsdoc) {
-    //storage.PumpsConfig[PUMP_CHL].tank_vol = (double)_jsonsdoc[F("ChlTank")][0];
-    //storage.PumpsConfig[PUMP_CHL].tank_fill = (double)_jsonsdoc[F("ChlTank")][1];
     ChlPump.SetTankVolume((double)_jsonsdoc[F("ChlTank")][0]);
     ChlPump.SetTankFill((double)_jsonsdoc[F("ChlTank")][1]);
     PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
@@ -282,30 +278,20 @@ void p_WTempLow(StaticJsonDocument<250>  &_jsonsdoc) {
     PublishSettings();
 }
 void p_PumpsMaxUp(StaticJsonDocument<250>  &_jsonsdoc) {
-    //storage.PumpsConfig[PUMP_PH].pump_max_uptime = (unsigned int)_jsonsdoc[F("PumpsMaxUp")];
-    //storage.PumpsConfig[PUMP_CHL].pump_max_uptime = (unsigned int)_jsonsdoc[F("PumpsMaxUp")];
-    PhPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpsMaxUp")]*1000);
-    ChlPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpsMaxUp")]*1000);
+    PhPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpsMaxUp")]*60*1000);
+    ChlPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpsMaxUp")]*60*1000);
     PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
     PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
-//    savePumpsConf();
-
-    // Apply changes
-  //  PhPump.SetMaxUpTime(storage.PumpsConfig[PUMP_PH].pump_max_uptime * 1000);
-    //ChlPump.SetMaxUpTime(storage.PumpsConfig[PUMP_CHL].pump_max_uptime * 1000);
     PublishSettings();
 }
 void p_FillMinUpTime(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_FILL].pump_min_uptime = (unsigned int)_jsonsdoc[F("FillMinUpTime")] * 60;
-    // MinUptime is not a member of pump class, this is used in main logic to prevent pump from stopping too fast
-    //savePumpsConf();
+    FillingPump.SetMinUpTime((unsigned int)_jsonsdoc[F("FillMinUpTime")]*60*1000);
+    PoolDeviceManager.SavePreferences(DEVICE_FILLING_PUMP);
     PublishSettings();
 }
 void p_FillMaxUpTime(StaticJsonDocument<250>  &_jsonsdoc) {
-    //storage.PumpsConfig[PUMP_FILL].pump_max_uptime = (unsigned int)_jsonsdoc[F("FillMaxUpTime")] * 60; 
-    FillingPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("FillMaxUpTime")] * 60 * 1000);
+    FillingPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("FillMaxUpTime")]*60*1000);
     PoolDeviceManager.SavePreferences(DEVICE_FILLING_PUMP);
-    //savePumpsConf();
     PublishSettings();
 }
 void p_OrpPIDParams(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -376,15 +362,11 @@ void p_PSILow(StaticJsonDocument<250>  &_jsonsdoc) {
     PublishSettings();
 }
 void p_pHPumpFR(StaticJsonDocument<250>  &_jsonsdoc) {
-    //storage.PumpsConfig[PUMP_PH].pump_flow_rate = (double)_jsonsdoc[F("pHPumpFR")];
-    //savePumpsConf();
     PhPump.SetFlowRate((double)_jsonsdoc[F("pHPumpFR")] * 1000);
     PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
     PublishSettings();
 }
 void p_ChlPumpFR(StaticJsonDocument<250>  &_jsonsdoc) {
-    //storage.PumpsConfig[PUMP_CHL].pump_flow_rate = (double)_jsonsdoc[F("ChlPumpFR")];
-    //savePumpsConf();
     PhPump.SetFlowRate((double)_jsonsdoc[F("ChlPumpFR")] * 1000);
     PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
     PublishSettings();
@@ -603,44 +585,20 @@ void p_SMTPConfig(StaticJsonDocument<250>  &_jsonsdoc) {
     saveParam("SMTP_RECIPIENT",storage.SMTP_RECIPIENT);
 }
 void p_PINConfig(StaticJsonDocument<250>  &_jsonsdoc) {
+    // Format of message is {"PINConfig":[index, pin_number, active_level, relay_operation_mode, interlock_id]}
     uint8_t temp_index = (uint8_t)_jsonsdoc[F("PINConfig")][0];
 
-    // Save changes
-    storage.PumpsConfig[temp_index].pin_number = (uint8_t)_jsonsdoc[F("PINConfig")][1]; // PIN Number
-    storage.PumpsConfig[temp_index].pin_active_level = (bool)_jsonsdoc[F("PINConfig")][2]; // LEVEL HIGH or LOW
-    storage.PumpsConfig[temp_index].relay_operation_mode = (bool)_jsonsdoc[F("PINConfig")][3]; // LATCH or MOMENTARY
     uint8_t lock_id = (uint8_t)_jsonsdoc[F("PINConfig")][4];
     lock_id = ((lock_id == NO_INTERLOCK)?NO_INTERLOCK:lock_id-1); // Nextion counts from 1 to 8 but GetInterlockId return from 0 to 7 (except NO_INTERLOCK which does not move)
-    storage.PumpsConfig[temp_index].pin_interlock = lock_id ; // INTERLOCK PIN INDEX (Nextion counts 1 to 8 so substract 1)
-    //savePumpsConf();
 
+    PIN *tmp_device = PoolDeviceManager.GetDevice(temp_index);
     // Apply changes
-    //Pool_Equipment[temp_index]->SetPinNumber((uint8_t)_jsonsdoc[F("PINConfig")][1]);
-    //Pool_Equipment[temp_index]->SetActiveLevel((bool)_jsonsdoc[F("PINConfig")][2]);
-    //Pool_Equipment[temp_index]->SetOperationMode((bool)_jsonsdoc[F("PINConfig")][3]);
-    PoolDeviceManager.GetDevice(temp_index)->SetPinNumber((uint8_t)_jsonsdoc[F("PINConfig")][1]);
-    PoolDeviceManager.GetDevice(temp_index)->SetActiveLevel((uint8_t)_jsonsdoc[F("PINConfig")][2]);
-    PoolDeviceManager.GetDevice(temp_index)->SetOperationMode((uint8_t)_jsonsdoc[F("PINConfig")][3]);
-    PoolDeviceManager.GetDevice(temp_index)->SetInterlock((uint8_t)lock_id);
+    tmp_device->SetPinNumber((uint8_t)_jsonsdoc[F("PINConfig")][1]);
+    tmp_device->SetActiveLevel((bool)_jsonsdoc[F("PINConfig")][2]);
+    tmp_device->SetOperationMode((bool)_jsonsdoc[F("PINConfig")][3]);
+    tmp_device->SetInterlock((uint8_t)lock_id);
     PoolDeviceManager.InitDevicesInterlock(temp_index);
-    PoolDeviceManager.GetDevice(temp_index)->Begin();
+    tmp_device->Begin();
     PoolDeviceManager.SavePreferences(temp_index);
-
-    // If an interlock is requested, loop through the equipment list to find its reference and assign the pointer
-    /*if(lock_id != NO_INTERLOCK)
-    {
-        PoolDeviceManager.Ini
-      for(auto equi_lock: Pool_Equipment)
-      {
-        if(equi_lock->GetPinId() == storage.PumpsConfig[temp_index].pin_interlock)
-        {
-          Pool_Equipment[temp_index]->SetInterlock(equi_lock);
-        }
-      }
-    }else
-    {
-      Pool_Equipment[temp_index]->SetInterlock(nullptr);
-    }
-    Pool_Equipment[temp_index]->Begin();*/
 }
 

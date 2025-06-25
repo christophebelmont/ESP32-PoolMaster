@@ -8,6 +8,8 @@ Features:
 NB: all timings are in milliseconds
 */
 #include <Preferences.h>
+#include <functional>
+
 
 #ifndef PIN_h
 #define PIN_h
@@ -41,6 +43,12 @@ class PIN {
     void SetPinNumber(uint8_t,uint8_t = OUTPUT_DIGITAL,bool = ACTIVE_LOW);
     void ResetPinLevel(void); // Reset to inactive level for momentary callback function
 
+    void SetName(const char* _name) {
+        strncpy(pin_name, _name, sizeof(pin_name) - 1);
+        pin_name[sizeof(pin_name) - 1] = '\0'; // Ensure null termination
+    }
+    const char* GetName(void) {return pin_name;}
+
     virtual bool GetOperationMode(void) = 0;
     virtual void SetOperationMode(bool) = 0;
     virtual void SetTankLevelPIN(uint8_t) = 0;
@@ -53,69 +61,27 @@ class PIN {
     virtual uint8_t GetInterlockId(void) = 0;
     virtual double GetTankFill() = 0;
     virtual void ResetUpTime() = 0;
-    virtual void loop() = 0;
     virtual bool IsEnabled() = 0;
     virtual bool IsRelay() = 0;
+    virtual void loop() = 0; // Loop function to be called periodically for upper classes
 
-    virtual void SavePreferences(Preferences& prefs) {
-        char key[15]; 
-        
-        snprintf(key, sizeof(key), "d%d_pn", pin_id);  // "device_X_pin_number"
-        if(pin_id == 8) {
-            Serial.printf("Save preference %s\r\n",key);
-        }
-        prefs.putUChar(key, pin_number);
+    virtual void SavePreferences(Preferences& prefs);
+    virtual void LoadPreferences(Preferences& prefs);
 
-        snprintf(key, sizeof(key), "d%d_pd", pin_id);  // "device_X_pin_direction"
-        if(pin_id == 8) {
-            Serial.printf("Save preference %s\r\n",key);
-        }
-        prefs.putBool(key, pin_direction);
+    virtual void SetHandlers(std::function<bool()> _handler1,std::function<bool()> _handler2,std::function<void()> _handler3,std::function<void()> _handler4) = 0;
+    virtual void SetShouldStartHandler(std::function<bool()> _handler) = 0;
+    virtual void SetShouldStopHandler(std::function<bool()> _handler) = 0;
+    virtual void SetOnStartHandler(std::function<void()> _handler) = 0;
+    virtual void SetOnStopHandler(std::function<void()> _handler) = 0;
 
-        snprintf(key, sizeof(key), "d%d_id", pin_id);  // "device_X_pin_id"
-        if(pin_id == 8) {
-            Serial.printf("Save preference %s\r\n",key);
-        }
-        prefs.putUChar(key, pin_id);
-
-        snprintf(key, sizeof(key), "d%d_al", pin_id);  // "device_X_active_level"
-        if(pin_id == 8) {
-            Serial.printf("Save preference %s\r\n",key);
-        }
-        prefs.putBool(key, active_level);
-    }
-
-    virtual void LoadPreferences(Preferences& prefs) {
-      char key[15];
-
-      snprintf(key, sizeof(key), "d%d_pn", pin_id);
-      if(pin_id == 8) {
-        Serial.printf("Read preference %s\r\n",key);
-      }
-      pin_number = prefs.getUChar(key, pin_number);
-
-      snprintf(key, sizeof(key), "d%d_pd", pin_id);
-      if(pin_id == 8) {
-        Serial.printf("Read preference %s\r\n",key);
-      }
-
-      pin_direction = prefs.getBool(key, pin_id);
-
-      snprintf(key, sizeof(key), "d%d_id", pin_id);
-      if(pin_id == 8) {
-        Serial.printf("Read preference Do not apply %s\r\n",key);
-      }
-
-//      pin_id = prefs.getUChar(key, pin_id);
-
-      snprintf(key, sizeof(key), "d%d_al", pin_id);
-      if(pin_id == 8) {
-        Serial.printf("Read preference %s\r\n",key);
-      }
-
-      active_level = prefs.getBool(key, active_level);
-  }
-
+  protected:
+    // State Machine like handlers
+    // These handlers are used to control the pump state machine
+    std::function<bool()> shouldStartHandler = nullptr;
+    std::function<bool()> shouldStopHandler = nullptr;
+    std::function<void()> onStartHandler = nullptr;
+    std::function<void()> onStopHandler = nullptr;
+    char pin_name[30] = "\0"; // Name of the pin, used for logs
 
   private:
     void Initialize(uint8_t, uint8_t = OUTPUT_DIGITAL, bool = ACTIVE_LOW);

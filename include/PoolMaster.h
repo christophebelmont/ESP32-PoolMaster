@@ -69,7 +69,7 @@ struct StoreStruct
   char SMTP_LOGIN[63], SMTP_PASS[63], SMTP_SENDER[150], SMTP_RECIPIENT[50];
   //uint  FillingPumpMinTime,FillingPumpMaxTime;
   bool BuzzerOn;
-  StorePumpConfig PumpsConfig[8]; // Table representing the configuration for Pumps
+  //StorePumpConfig PumpsConfig[8]; // Table representing the configuration for Pumps
 } ;
 
 typedef enum DeviceManagerType {

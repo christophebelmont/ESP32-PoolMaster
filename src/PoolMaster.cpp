@@ -109,35 +109,24 @@ void PoolMaster(void *pvParameters)
     //reset time counters at midnight and send sync request to time server
     if (hour() == 0 && !DoneForTheDay)
     {
-      // Reset all pumps uptime
-      int i=0;
-      //for(auto equi: Pool_Equipment)
-      //{
-      //  storage.PumpsConfig[i].tank_fill = equi->GetTankFill();
-       // equi->ResetUpTime();
-       // equi->SetTankFill(storage.PumpsConfig[i].tank_fill);
-      //  i++;
-      //}
       // Reset all devices uptimes
       PoolDeviceManager.ResetUptimes(); // Reset UpTime for all devices
-      // Save 
-      //savePumpsConf();
 
-        d_calc = false;
-        DoneForTheDay = true;
-        cleaning_done = false;
+      d_calc = false;
+      DoneForTheDay = true;
+      cleaning_done = false;
 
-        // Sync with NTP everyday at midnight
-        if (readLocalTime()) {
-          setTime(timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec,timeinfo.tm_mday,timeinfo.tm_mon+1,timeinfo.tm_year-100);
-          syncESP2RTC(second(),minute(),hour(),day(),month(),year()); // Send to Nextion RTC
-          Debug.print(DBG_INFO,"From NTP time %d/%02d/%02d %02d:%02d:%02d",year(),month(),day(),hour(),minute(),second());
-          PoolMaster_NTPReady = true;
-        } else {
-          syncRTC2ESP();  // If NTP not available, get from Nextion RTC
-          Debug.print(DBG_INFO,"From RTC time %d/%02d/%02d %02d:%02d:%02d",year(),month(),day(),hour(),minute(),second());
-          PoolMaster_NTPReady = false;
-        }
+      // Sync with NTP everyday at midnight
+      if (readLocalTime()) {
+        setTime(timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec,timeinfo.tm_mday,timeinfo.tm_mon+1,timeinfo.tm_year-100);
+        syncESP2RTC(second(),minute(),hour(),day(),month(),year()); // Send to Nextion RTC
+        Debug.print(DBG_INFO,"From NTP time %d/%02d/%02d %02d:%02d:%02d",year(),month(),day(),hour(),minute(),second());
+        PoolMaster_NTPReady = true;
+      } else {
+        syncRTC2ESP();  // If NTP not available, get from Nextion RTC
+        Debug.print(DBG_INFO,"From RTC time %d/%02d/%02d %02d:%02d:%02d",year(),month(),day(),hour(),minute(),second());
+        PoolMaster_NTPReady = false;
+      }
 
       // Security: if WiFi disconnected in spite of system auto-reconnect, try to restart once a day
       //if(WiFi.status() != WL_CONNECTED) esp_restart(); // Commented out, if not connection hour is possibly 0 (midnight at bootup causing infinite reboot)
@@ -206,7 +195,8 @@ void PoolMaster(void *pvParameters)
 /* ******************************************* 
     START OF MAIN POOLMASTER AUTOMATION LOGIC
    ******************************************* */
-  if (!FiltrationPump.IsRunning())  //Filtration Pump NOT Running
+
+   if (!FiltrationPump.IsRunning())  //Filtration Pump NOT Running
   {
     // Filtration pump is not running, check conditions to start
     if ((storage.AutoMode && hour() >= storage.FiltrationStart && hour() < storage.FiltrationStop && !PSIError ) ||
@@ -311,18 +301,6 @@ void PoolMaster(void *pvParameters)
         }
   } // End of Filtration Pimp IS Running
 
-// Check water level (HIGH means that jumper is opened)
-// If Pool Level is Active, this means Water Level is OK.
-if((!PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive()) && (!FillingPump.IsRunning())) {
-  FillingPump.ResetUpTime();  // We are interested in computing uptime from now
-  FillingPump.Start();
-} 
-
-// Stop Pump if level back to normal and minimum runtime reached
-if(FillingPump.IsRunning() && (PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive()) && (FillingPump.UpTime > (storage.PumpsConfig[PUMP_FILL].pump_min_uptime*1000))) {
-  FillingPump.Stop();
-}
-
 /* ******************************************* 
     END OF MAIN POOLMASTER AUTOMATION LOGIC
    ******************************************* */
@@ -365,7 +343,7 @@ void SetPhPID(bool Enable)
     PhPID.SetMode(MANUAL);
     storage.Ph_RegulationOnOff = 0;
     storage.PhPIDOutput = 0.0;
-    PhPump.Stop();
+    //PhPump.Stop(); // Do not stop PhPump here, it is controlled by the PID or directly by the user 
   }
 }
 
@@ -388,7 +366,7 @@ void SetOrpPID(bool Enable)
     OrpPID.SetMode(MANUAL);
     storage.Orp_RegulationOnOff = 0;
     storage.OrpPIDOutput = 0.0;
-    ChlPump.Stop();
+    //ChlPump.Stop(); // Do not stop ChlPump here, it is controlled by the PID or directly by the user
   }
 }
 

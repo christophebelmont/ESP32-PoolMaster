@@ -124,10 +124,11 @@ void SettingsPublish(void *pvParameters)
         root["FDu"]    = storage.FiltrationDuration;       //Computed filtration duration based on water temperature (hours)
         root["FStoM"]  = storage.FiltrationStopMax;        //Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour
         root["FSto"]   = storage.FiltrationStop;           //Computed filtration stop hour, equal to FSta + FDu (hour)
-        root["pHUTL"]  = storage.PumpsConfig[PUMP_PH].pump_max_uptime / 60;   //Max allowed daily run time for the pH pump (/!\ mins)
-        root["ChlUTL"] = storage.PumpsConfig[PUMP_CHL].pump_max_uptime / 60;  //Max allowed daily run time for the Chl pump (/!\ mins)
-        root["FMaUT"]  = storage.PumpsConfig[PUMP_FILL].pump_max_uptime / 60;  //Max allowed daily run time for the Pool Filling pump (/!\ mins)
-        root["FMiUT"]  = storage.PumpsConfig[PUMP_FILL].pump_min_uptime / 60;  //Min allowed run time for the Pool Filling pump (/!\ mins)
+        root["pHUTL"]  = PhPump.MaxUpTime / 1000 / 60;  //Max allowed daily run time for the pH pump (/!\ mins)
+        root["ChlUTL"] = ChlPump.MaxUpTime / 1000 / 60; //Max allowed daily run time for the Chl pump (/!\ mins)
+        root["FMiUT"]  = FillingPump.MinUpTime / 1000 / 60;  //Min allowed daily run time for the Pool Filling pump (/!\ mins)
+        root["FMaUT"]  = FillingPump.MaxUpTime / 1000 / 60;  //Max allowed daily run time for the Pool Filling pump (/!\ mins)
+
 
         snprintf(tempTopicSet,sizeof(tempTopicSet),"%s/%s",storage.MQTT_TOPIC,PoolTopicSet1);
         remove_duplicates_slash(tempTopicSet);
@@ -208,10 +209,10 @@ void SettingsPublish(void *pvParameters)
         const int capacity = JSON_OBJECT_SIZE(6);
         StaticJsonDocument<capacity> root;
 
-        root["pHTV"]  = storage.PumpsConfig[PUMP_PH].tank_vol;        //Acid tank nominal volume (Liters)
-        root["ChlTV"] = storage.PumpsConfig[PUMP_CHL].tank_vol;       //Chl tank nominal volume (Liters)
-        root["pHFR"]  = storage.PumpsConfig[PUMP_PH].pump_flow_rate;  //Acid pump flow rate (L/hour)
-        root["OrpFR"] = storage.PumpsConfig[PUMP_CHL].pump_flow_rate;  //Chl pump flow rate (L/hour)
+        root["pHTV"]  = PhPump.GetTankVolume();         //Acid tank nominal volume (Liters)
+        root["ChlTV"] = ChlPump.GetTankVolume();         //Chl tank nominal volume (Liters)
+        root["pHFR"]  = PhPump.GetFlowRate();           //Acid pump flow rate (L/hour)
+        root["OrpFR"] = ChlPump.GetFlowRate();           //Chl pump flow rate (L/hour)
         root["SWGSec"] = storage.SecureElectro;           //SWG Chlorine Generator Secure Temperature (°C)
         root["SWGDel"] = storage.DelayElectro;           //SWG Chlorine Generator Delay before start after pump (mn)
 

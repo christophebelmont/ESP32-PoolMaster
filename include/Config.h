@@ -122,18 +122,6 @@
 #define PH_PUMP_MAX_UPTIME 15   // Default swimming Pool Filling Valve maximum runtime
 #define CHL_PUMP_MAX_UPTIME 40   // Default swimming Pool Filling Valve maximum runtime
 
-// Define pumps index in pump and relays table
-// Needs to correspond to Setup.cpp order of introduction in table
-#define PUMP_FILT 0
-#define PUMP_PH   1
-#define PUMP_CHL  2
-#define PUMP_ROBO 3
-#define PUMP_SWG  4
-#define PUMP_FILL 5
-#define RELA_R0   6
-#define RELA_R1   7
-
-
 //Display timeout before blanking
 //-------------------------------
 //#define TFT_SLEEP 60000L  // Moved to Nextion Library
