@@ -21,8 +21,8 @@ NB: all timings are in milliseconds
 
 class InputSensor : public PIN {
   public:
-    InputSensor(uint8_t _pin_number, uint8_t _pin_id, uint8_t _active_level = ACTIVE_LOW) 
-      : PIN(_pin_number, _pin_id, (uint8_t)INPUT_DIGITAL, _active_level) {
+    InputSensor(uint8_t _pin_number, uint8_t _active_level = ACTIVE_LOW) 
+      : PIN(_pin_number, (uint8_t)INPUT_DIGITAL, _active_level) {
         //debounceTimer = xTimerCreate("DebounceTimer", pdMS_TO_TICKS(50), pdFALSE, this, debounceCallback);
     }
 

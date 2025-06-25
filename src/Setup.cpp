@@ -124,27 +124,27 @@ Preferences nvs;
 // IMPORTANT NOTE: second argument is ID and MUST correspond to the equipment index in the "Pool_Equipment" vector
 // FiltrationPump: This Pump controls the filtration, no tank attached and not interlocked to any element. SSD relay attached works with HIGH level.
 
-Pump FiltrationPump(FILTRATION,DEVICE_FILTPUMP);
+Pump FiltrationPump(FILTRATION);
 // pHPump: This Pump has no low-level switch so remaining volume is estimated. It is interlocked with the relay of the FilrationPump
 //Pump PhPump(PH_PUMP, PH_LEVEL, ACTIVE_LOW, MODE_LATCHING, storage.pHPumpFR, storage.pHTankVol, storage.AcidFill);
-Pump PhPump(PH_PUMP,DEVICE_PH_PUMP,PH_LEVEL);
+Pump PhPump(PH_PUMP,PH_LEVEL);
 // ChlPump: This Pump has no low-level switch so remaining volume is estimated. It is interlocked with the relay of the FilrationPump
 //Pump ChlPump(CHL_PUMP, CHL_LEVEL, ACTIVE_LOW, MODE_LATCHING, storage.ChlPumpFR, storage.ChlTankVol, storage.ChlFill);
-Pump ChlPump(CHL_PUMP,DEVICE_CHL_PUMP,CHL_LEVEL);
+Pump ChlPump(CHL_PUMP,CHL_LEVEL);
 // RobotPump: This Pump is not injecting liquid so tank is associated to it. It is interlocked with the relay of the FilrationPump
-Pump RobotPump(ROBOT,DEVICE_ROBOT);
+Pump RobotPump(ROBOT);
 // SWG: This Pump is associated with a Salt Water Chlorine Generator. It turns on and off the equipment to produce chlorine.
 // It has no tank associated. It is interlocked with the relay of the FilrationPump
-Pump SWGPump(SWG_PUMP,DEVICE_SWG);
+Pump SWGPump(SWG_PUMP);
 // Filling Pump: This pump is autonomous, not interlocked with filtering pump.
-Pump FillingPump(FILL_PUMP,DEVICE_FILLING_PUMP);
+Pump FillingPump(FILL_PUMP);
 
 // The Relays class to activate and deactivate digital pins
-Relay RELAYR0(PROJ,DEVICE_RELAY0,OUTPUT_DIGITAL); // Relay for the projector
-Relay RELAYR1(SPARE,DEVICE_RELAY1,OUTPUT_DIGITAL); // Relay for the spare
+Relay RELAYR0(PROJ,OUTPUT_DIGITAL); // Relay for the projector
+Relay RELAYR1(SPARE,OUTPUT_DIGITAL); // Relay for the spare
 
 // Input ports
-InputSensor PoolWaterLevelSensor(POOL_LEVEL, DEVICE_POOL_LEVEL); // Pool water level sensor (pool level ok if HIGH and pool level problem if LOW)
+InputSensor PoolWaterLevelSensor(POOL_LEVEL); // Pool water level sensor (pool level ok if HIGH and pool level problem if LOW)
 
 // List of all the equipment of PoolMaster
 //std::vector<PIN*> Pool_Equipment;

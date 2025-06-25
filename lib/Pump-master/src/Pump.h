@@ -45,8 +45,8 @@ class Pump : public Relay {
   //FlowRate is the flow rate of the pump in Liters/Hour, typically 1.5 or 3.0 L/hour for peristaltic pumps for pools. This is used to compute how much of the tank we have emptied out
   //TankVolume is used here to compute the percentage fill used
   //TankFill current tank fill percentage when object is constructed
-    Pump(uint8_t _pin_number, uint8_t _pin_id, uint8_t _tank_level_pin = NO_TANK, uint8_t _active_level = ACTIVE_LOW, bool _operation_mode = MODE_LATCHING, double _flowrate= DEFAULT_FLOWRATE, double _tankvolume= DEFAULT_TANK_VOLUME, double _tankfill=DEFAULT_TANK_FILL)
-    : Relay(_pin_number, _pin_id, OUTPUT_DIGITAL, _active_level, _operation_mode) 
+    Pump(uint8_t _pin_number, uint8_t _tank_level_pin = NO_TANK, uint8_t _active_level = ACTIVE_LOW, bool _operation_mode = MODE_LATCHING, double _flowrate= DEFAULT_FLOWRATE, double _tankvolume= DEFAULT_TANK_VOLUME, double _tankfill=DEFAULT_TANK_FILL)
+    : Relay(_pin_number, OUTPUT_DIGITAL, _active_level, _operation_mode) 
     {
       tank_level_pin = _tank_level_pin;
       flowrate = _flowrate;
@@ -83,8 +83,8 @@ class Pump : public Relay {
     bool CheckInterlock();  // Return true if interlock pump running (use only the pointer to the interlock pump so need to call InitInterlock before)
     bool IsRelay(void);
 
-    void SavePreferences(Preferences& prefs);
-    void LoadPreferences(Preferences& prefs);
+    void SavePreferences(Preferences& prefs, uint8_t pin_id);
+    void LoadPreferences(Preferences& prefs, uint8_t pin_id);
 
     unsigned long UpTime        = 0;
     unsigned long MaxUpTime     = DEFAULTMAXUPTIME; // Maximum Uptime for a run

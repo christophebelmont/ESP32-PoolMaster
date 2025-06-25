@@ -151,23 +151,23 @@ bool Relay::IsEnabled()
 }
 
 
-void Relay::SavePreferences(Preferences& prefs)  
+void Relay::SavePreferences(Preferences& prefs, uint8_t pin_id)  
 {
-    PIN::SavePreferences(prefs);
+    PIN::SavePreferences(prefs, pin_id);
 
     char key[15];
-    snprintf(key, sizeof(key), "d%d_om", GetPinId());  // "device_X_operation_mode"
+    snprintf(key, sizeof(key), "d%d_om", pin_id);  // "device_X_operation_mode"
     prefs.putBool(key, operation_mode);
     //Serial.printf("Save preference %s = %d\r\n",key, operation_mode);
 }
 
-void Relay::LoadPreferences(Preferences& prefs)  
+void Relay::LoadPreferences(Preferences& prefs, uint8_t pin_id)  
 {
-    PIN::LoadPreferences(prefs);
+    PIN::LoadPreferences(prefs,pin_id);
 
     char key[15];
     bool tmp_operation_mode;
-    snprintf(key, sizeof(key), "d%d_om", GetPinId());
+    snprintf(key, sizeof(key), "d%d_om", pin_id);
     tmp_operation_mode = prefs.getBool(key, operation_mode);
     //Serial.printf("Read preference %s = %d\r\n",key, tmp_operation_mode);
 

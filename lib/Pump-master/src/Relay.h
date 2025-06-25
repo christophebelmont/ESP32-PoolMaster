@@ -26,8 +26,8 @@ NB: all timings are in milliseconds
 
 class Relay : public PIN {
   public:
-    Relay(uint8_t _pin_number, uint8_t _pin_id, uint8_t _pin_direction = OUTPUT_DIGITAL, bool _active_level = ACTIVE_LOW, bool _operation_mode = MODE_LATCHING) 
-      : PIN(_pin_number, _pin_id, _pin_direction, _active_level) 
+    Relay(uint8_t _pin_number, uint8_t _pin_direction = OUTPUT_DIGITAL, bool _active_level = ACTIVE_LOW, bool _operation_mode = MODE_LATCHING) 
+      : PIN(_pin_number, _pin_direction, _active_level) 
     {
       Initialize(_operation_mode);    // Initialize before changing the class variable because
                                       // function needs to know what operation mode we change from
@@ -58,8 +58,8 @@ class Relay : public PIN {
     void SetInterlock(uint8_t);
     uint8_t GetInterlockId(void);
     bool IsRelay(void);
-    void SavePreferences(Preferences& prefs);
-    void LoadPreferences(Preferences& prefs);
+    void SavePreferences(Preferences& prefs, uint8_t pin_id);
+    void LoadPreferences(Preferences& prefs, uint8_t pin_id);
 
     void SetHandlers(std::function<bool()> _handler1, std::function<bool()> _handler2, std::function<void()> _handler3, std::function<void()> _handler4) override {
         shouldStartHandler = _handler1;

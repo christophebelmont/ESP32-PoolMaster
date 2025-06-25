@@ -25,7 +25,7 @@ NB: all timings are in milliseconds
 
 class PIN {
   public:
-    PIN(uint8_t, uint8_t, uint8_t = OUTPUT_DIGITAL, bool = ACTIVE_LOW);
+    PIN(uint8_t, uint8_t = OUTPUT_DIGITAL, bool = ACTIVE_LOW);
 
     void Enable();
     void Disable();
@@ -37,7 +37,7 @@ class PIN {
     void SetActiveLevel(bool);    // ACTIVE_HIGH or ACTIVE_LOW
     bool GetActiveLevel(void);    // ACTIVE_HIGH or ACTIVE_LOW
 
-    uint8_t GetPinId();
+    //uint8_t GetPinId();
     uint8_t GetPinNumber();
     uint8_t GetPinDirection();
     void SetPinNumber(uint8_t,uint8_t = OUTPUT_DIGITAL,bool = ACTIVE_LOW);
@@ -65,8 +65,8 @@ class PIN {
     virtual bool IsRelay() = 0;
     virtual void loop() = 0; // Loop function to be called periodically for upper classes
 
-    virtual void SavePreferences(Preferences& prefs);
-    virtual void LoadPreferences(Preferences& prefs);
+    virtual void SavePreferences(Preferences& prefs, uint8_t pin_id);
+    virtual void LoadPreferences(Preferences& prefs, uint8_t pin_id);
 
     virtual void SetHandlers(std::function<bool()> _handler1,std::function<bool()> _handler2,std::function<void()> _handler3,std::function<void()> _handler4) = 0;
     virtual void SetShouldStartHandler(std::function<bool()> _handler) = 0;
@@ -89,7 +89,7 @@ class PIN {
     uint8_t pin_number;
     uint8_t pin_direction;
     bool active_level;
-    uint8_t pin_id;
+  //  uint8_t pin_id;
 };
 
 #endif

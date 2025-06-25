@@ -217,73 +217,73 @@ bool Pump::IsRelay(void)
   return false;
 }
 
-void Pump::SavePreferences(Preferences& prefs)  {
-    Relay::SavePreferences(prefs);
+void Pump::SavePreferences(Preferences& prefs, uint8_t pin_id)  {
+    Relay::SavePreferences(prefs,pin_id);
 
     char key[15];
-    uint8_t tmp_pin_id = GetPinId();
+    //uint8_t tmp_pin_id = GetPinId();
 
-    snprintf(key, sizeof(key), "d%d_fr", tmp_pin_id);  // "device_X_flowrate"
+    snprintf(key, sizeof(key), "d%d_fr", pin_id);  // "device_X_flowrate"
     prefs.putDouble(key, flowrate);
     //Serial.printf("Save preference %s = %d\r\n",key, flowrate);
 
-    snprintf(key, sizeof(key), "d%d_tv", tmp_pin_id);  // "device_X_tankvolume"
+    snprintf(key, sizeof(key), "d%d_tv", pin_id);  // "device_X_tankvolume"
     prefs.putDouble(key, tankvolume);
     //Serial.printf("Save preference %s = %d\r\n",key, tankvolume);
 
-    snprintf(key, sizeof(key), "d%d_tf", tmp_pin_id);  // "device_X_tankfill"
+    snprintf(key, sizeof(key), "d%d_tf", pin_id);  // "device_X_tankfill"
     prefs.putDouble(key, tankfill);
     //Serial.printf("Save preference %s = %d\r\n",key, tankfill);
 
-    snprintf(key, sizeof(key), "d%d_tl", tmp_pin_id);  // "device_X_tanklevelpin"
+    snprintf(key, sizeof(key), "d%d_tl", pin_id);  // "device_X_tanklevelpin"
     prefs.putUChar(key, tank_level_pin);
     //Serial.printf("Save preference %s = %d\r\n",key, tank_level_pin);
 
-    snprintf(key, sizeof(key), "d%d_il", tmp_pin_id);  // "device_X_interlockid"
+    snprintf(key, sizeof(key), "d%d_il", pin_id);  // "device_X_interlockid"
     prefs.putUChar(key, interlock_pin_id);
     //Serial.printf("Save preference %s = %d\r\n",key, interlock_pin_id);
 
-    snprintf(key, sizeof(key), "d%d_mu", tmp_pin_id);  // "device_X_maxutime"
+    snprintf(key, sizeof(key), "d%d_mu", pin_id);  // "device_X_maxutime"
     prefs.putULong(key, MaxUpTime);
     //Serial.printf("Save preference %s = %d\r\n",key, MaxUpTime);
 
-    snprintf(key, sizeof(key), "d%d_mi", tmp_pin_id);  // "device_X_minutime"
+    snprintf(key, sizeof(key), "d%d_mi", pin_id);  // "device_X_minutime"
     prefs.putULong(key, MinUpTime);
     //Serial.printf("Save preference %s = %d\r\n",key, MinUpTime);
 
   }
 
-void Pump::LoadPreferences(Preferences& prefs)  {
-    Relay::LoadPreferences(prefs);
+void Pump::LoadPreferences(Preferences& prefs, uint8_t pin_id)  {
+    Relay::LoadPreferences(prefs,pin_id);
 
     char key[15];
-    uint8_t tmp_pin_id = GetPinId();
+    //uint8_t tmp_pin_id = GetPinId();
 
-    snprintf(key, sizeof(key), "d%d_fr", tmp_pin_id);
+    snprintf(key, sizeof(key), "d%d_fr", pin_id);
     flowrate = prefs.getDouble(key, flowrate);
     //Serial.printf("Read preference %s = %d\r\n",key, flowrate);
 
-    snprintf(key, sizeof(key), "d%d_tv", tmp_pin_id );
+    snprintf(key, sizeof(key), "d%d_tv", pin_id );
     tankvolume = prefs.getDouble(key, tankvolume);
     //Serial.printf("Read preference %s = %d\r\n",key, tankvolume);
 
-    snprintf(key, sizeof(key), "d%d_tf", tmp_pin_id);
+    snprintf(key, sizeof(key), "d%d_tf", pin_id);
     tankfill = prefs.getDouble(key, tankfill);
     //Serial.printf("Read preference %s = %d\r\n",key, tankfill);
 
-    snprintf(key, sizeof(key), "d%d_tl", tmp_pin_id);
+    snprintf(key, sizeof(key), "d%d_tl", pin_id);
     tank_level_pin = prefs.getUChar(key, tank_level_pin);
     //Serial.printf("Read preference %s = %d\r\n",key, tank_level_pin);
 
-    snprintf(key, sizeof(key), "d%d_il", tmp_pin_id);
+    snprintf(key, sizeof(key), "d%d_il", pin_id);
     interlock_pin_id = prefs.getUChar(key, interlock_pin_id);
     //Serial.printf("Read preference %s = %d\r\n",key, interlock_pin_id);
 
-    snprintf(key, sizeof(key), "d%d_mu", tmp_pin_id);
+    snprintf(key, sizeof(key), "d%d_mu", pin_id);
     MaxUpTime = prefs.getULong(key, MaxUpTime);
     //Serial.printf("Read preference %s = %d\r\n",key, MaxUpTime);
 
-    snprintf(key, sizeof(key), "d%d_mi", tmp_pin_id);
+    snprintf(key, sizeof(key), "d%d_mi", pin_id);
     MinUpTime = prefs.getULong(key, MinUpTime);
     //Serial.printf("Read preference %s = %d\r\n",key, MinUpTime);
   }

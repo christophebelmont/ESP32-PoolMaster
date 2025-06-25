@@ -42,26 +42,22 @@ class DeviceManager {
     {
          if(_index != PREF_LOADSAVE_ALL_DEVICES) {
             if(devices[_index]->GetInterlockId() == NO_INTERLOCK) {
-                //Serial.printf("Unique Set interlock for device %d to 255\r\n", devices[_index]->GetPinId());
                 devices[_index]->SetInterlock(nullptr); // Set interlock for the device
             } else {
                 for (const auto& subentry : devices) {
-                    if(devices[_index]->GetInterlockId() == subentry.second->GetPinId()) {
+                    if(devices[_index]->GetInterlockId() == subentry.first) {
                         devices[_index]->SetInterlock(subentry.second); // Set interlock for the device
-                        //Serial.printf("Unique Set interlock for device %d to %d\r\n", _index, subentry.second->GetPinId());
                     }
                 }
             }
          } else {
             for (const auto& entry : devices) {
                 if(entry.second->GetInterlockId() == NO_INTERLOCK) {
-                    //Serial.printf("Global Set interlock for device %d to 255\r\n", entry.second->GetPinId());
                     entry.second->SetInterlock(nullptr); // Set interlock for the device
                 } else {
                     for (const auto& subentry : devices) {
-                        if(entry.second->GetInterlockId() == subentry.second->GetPinId()) {
+                        if(entry.second->GetInterlockId() == subentry.first) {
                             entry.second->SetInterlock(subentry.second); // Set interlock for the device
-                            //Serial.printf("Global Set interlock for device %d to %d\r\n", entry.second->GetPinId(), subentry.second->GetPinId());
                         }
                     }
                 }
@@ -84,11 +80,11 @@ class DeviceManager {
         preferences.putUInt("device_count", devices.size()); // Enregistrer le nombre d'appareils
 
         if(_index != PREF_LOADSAVE_ALL_DEVICES) {
-            devices[_index]->SavePreferences(preferences); // Sauvegarde individuelle
+            devices[_index]->SavePreferences(preferences,_index); // Sauvegarde individuelle
             return;
         } else {
             for (const auto& entry : devices) {
-                entry.second->SavePreferences(preferences); // Sauvegarde de toutes les entrées
+                entry.second->SavePreferences(preferences,entry.first); // Sauvegarde de toutes les entrées
             }
         }
         preferences.end(); // Fermer la mémoire
@@ -99,11 +95,11 @@ class DeviceManager {
         uint8_t deviceCount = preferences.getUInt("device_count", 0);
 
         if(_index != PREF_LOADSAVE_ALL_DEVICES) {
-            devices[_index]->LoadPreferences(preferences); // Sauvegarde individuelle
+            devices[_index]->LoadPreferences(preferences,_index); // Sauvegarde individuelle
             return;
         } else {
             for (const auto& entry : devices) {
-                entry.second->LoadPreferences(preferences); // Sauvegarde de toutes les entrées
+                entry.second->LoadPreferences(preferences,entry.first); // Sauvegarde de toutes les entrées
             }
         }
         preferences.end(); // Fermer la mémoire

@@ -3,10 +3,9 @@
 
 
 //Constructor
-PIN::PIN(uint8_t _pin_number, uint8_t _pin_id, uint8_t _pin_direction, bool _active_level)
+PIN::PIN(uint8_t _pin_number, uint8_t _pin_direction, bool _active_level)
 {
   Initialize(_pin_number, _pin_direction,_active_level);
-  pin_id = _pin_id;
 }
 
 void PIN::Initialize(uint8_t _pin_number, uint8_t _pin_direction, bool _active_level)
@@ -86,10 +85,10 @@ bool PIN::GetActiveLevel(void)
 }
 
 // Return pin id related to this relay
-uint8_t PIN::GetPinId()
+/*uint8_t PIN::GetPinId()
 {
   return pin_id;
-}
+}*/
 
 // Return pin number related to this relay
 uint8_t PIN::GetPinNumber()
@@ -121,7 +120,7 @@ bool PIN::IsActive()
   }
 }
 
-void PIN::SavePreferences(Preferences& prefs) {
+void PIN::SavePreferences(Preferences& prefs, uint8_t pin_id) {
     char key[15]; 
     
     snprintf(key, sizeof(key), "d%d_pn", pin_id);  // "device_X_pin_number"
@@ -141,7 +140,7 @@ void PIN::SavePreferences(Preferences& prefs) {
     //Serial.printf("Save preference %s = %d\r\n",key, active_level);
 }
 
-void PIN::LoadPreferences(Preferences& prefs) {
+void PIN::LoadPreferences(Preferences& prefs, uint8_t pin_id) {
   char key[15];
 
   // pin_number
@@ -162,5 +161,5 @@ void PIN::LoadPreferences(Preferences& prefs) {
   // pin_active_level
   snprintf(key, sizeof(key), "d%d_al", pin_id);
   active_level = prefs.getBool(key, active_level);
-  //Serial.printf("Read preference %s = %d\r\n",key, active_level);
+  Serial.printf("Read preference %s = %d\r\n",key, active_level);
 }
