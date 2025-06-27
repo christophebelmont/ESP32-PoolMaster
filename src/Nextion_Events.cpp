@@ -13,7 +13,7 @@ EasyNextionEventManager NexeventManager; // Create an instance of the event mana
 // Initialize the Nextion events manager by registering even handlers
 void NexEvents_Init()
 {
-    NexeventManager.registerEvent(ENCT_COMMAND,Nextion_Command_53);
+    NexeventManager.registerEvent(ENCT_ACTION,Nextion_Command_53);
     NexeventManager.registerEvent(ENCT_MENU,Nextion_Menu_4D);
     NexeventManager.registerEvent(ENCT_TXT_CMD,Nextion_Txt_Cmd_43);
     NexeventManager.registerEvent(ENCT_GRAPH,Nextion_Graph_47);
@@ -212,3 +212,58 @@ void SendCommand(const char* _server_command, int _force_state, int _state_table
   }
   xQueueSendToBack(queueIn,&Cmd,0);
 }
+
+
+// Function to graph values. It computed best scale and send to Nextion
+void graphTable(CircularBuffer<int,NUMBER_OF_HISTORY_SAMPLES> &_sample_table, int _graph_object_id, int _graph_channel)
+{
+  char buf[NUMBER_OF_HISTORY_SAMPLES] = { 0 };
+  uint16_t sample_table_size = _sample_table.size();
+  // ²
+  // Calculate min and max values for automatic scaling
+  if (!_sample_table.isEmpty()) {
+    int minValue = 9999;
+    int maxValue = -9999;
+
+    // Find the maximum and minimum values
+    for (int i = 0; i < sample_table_size; ++i) {
+      if (_sample_table[i] < minValue) {
+        minValue = _sample_table[i];
+      }
+      if (_sample_table[i] > maxValue) {
+        maxValue = _sample_table[i];
+    }
+    }
+
+    // Adjust baseline and scale values
+    int graphMin = minValue - 10; // Add some padding
+    int graphMax = maxValue + 10; // Add some padding
+    int graphMid = (graphMin + graphMax) / 2;
+
+    // Update graph scale on the Nextion display
+    snprintf_P(temp, sizeof(temp), PSTR("%4.2f"), float(graphMax) / 100);
+    myNex.writeStr(F("tMax.txt"), temp);
+    snprintf_P(temp, sizeof(temp), PSTR("%4.2f"), float(graphMin) / 100);
+    myNex.writeStr(F("tMin.txt"), temp);
+    snprintf_P(temp, sizeof(temp), PSTR("%4.2f"), float(graphMid) / 100);
+    myNex.writeStr(F("tMed.txt"), temp);
+
+
+    // Initialize table
+    for(int i=0;i<NUMBER_OF_HISTORY_SAMPLES;i++)
+    {
+      if(i<sample_table_size)
+        // Get the pH Sample with baseline reference
+        buf[i] = map(_sample_table[i],graphMin,graphMax,0,GRAPH_Y_SIZE);
+      else
+        buf[i] = 0;
+    }
+  }
+  snprintf_P(temp_command,sizeof(temp_command),PSTR("addt %d,%d,%d"),_graph_object_id,_graph_channel,sample_table_size);
+  myNex.writeStr(temp_command);
+  myNex.writeAllowed=false;
+  vTaskDelay(5 / portTICK_PERIOD_MS);
+  Serial2.write(buf,sample_table_size);
+  myNex.writeAllowed=true;
+}
+

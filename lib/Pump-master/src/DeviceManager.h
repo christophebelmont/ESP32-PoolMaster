@@ -94,7 +94,23 @@ class DeviceManager {
         preferences.begin(PREF_STORAGE_NAME, true);  // Démarrer la mémoire en read only mode
         uint8_t deviceCount = preferences.getUInt("device_count", 0);
         Serial.println("=== Devices Parameters ===");
-        Serial.printf("=== %d devices\r\n ===", deviceCount);
+        Serial.printf("=== %d devices ===\r\n", deviceCount);
+        Serial.println("PIN Keys");
+        Serial.println("  pn: Pin Number");
+        Serial.println("  pd: Pin Direction (0=OUTPUT_DIGITAL, 1=OUTPUT_PWM, 2=INPUT_DIGITAL)");
+        Serial.println("  al: Active Level (0=ACTIVE_LOW, 1=ACTIVE_HIGH)");
+        Serial.println("RELAYS Keys");
+        Serial.println("  om: Operation Mode (0=LATCHING, 1=MOMENTARY)");
+        Serial.println("PUMP Keys");
+        Serial.println("  fr: Flow Rate (L/min)");
+        Serial.println("  tv: Tank Volume (L)");
+        Serial.println("  tf: Tank Fill (%)");
+        Serial.println("  tl: Tank Level Pin (170=No Level, 255=No Tank)");
+        Serial.println("  il: Interlock Pin (255=No Interlock)");
+        Serial.println("  mu: Max Up Time (ms)");
+        Serial.println("  mi: Min Up Time (ms)");
+        Serial.println("========================");
+
         if(_index != PREF_LOADSAVE_ALL_DEVICES) {
             devices[_index]->LoadPreferences(preferences,_index); // Sauvegarde individuelle
             return;

@@ -2,8 +2,9 @@
   NEXTION MENU TFT related code, based on EasyNextion library by Seithan / Athanasios Seitanis.
   Used to define and display the settings menu
 */
+#include "Nextion.h"
 #include "Nextion_Menu.h"
-#include "Nextion_Events.h"
+#include "Nextion_Pages.h"
 #include "translation.h"
 
 EasyNextionMenus  MainMenu(15,ENM_MAIN);
@@ -72,7 +73,7 @@ void NexMenu_Init(EasyNex& _myNex)
     // Sub Menus
     SubMenu1.AddItem(nullptr,nullptr,Helpers::translated_word(FL_(NXT_SUBMENU1),_lang),"┖",nullptr,ENM_ACTION,1,ENMP_FILTRATION);       // Filtration Options
     SubMenu1.AddItem(nullptr,nullptr,Helpers::translated_word(FL_(NXT_SUBMENU2),_lang),"▫",nullptr,ENM_ACTION,1,ENMP_PSI_OPTIONS);      // PSI  Options
-    SubMenu1.AddItem([]() {SetValue("Winter",SETVALUE_TOGGLE,SETVALUE_DIRECT,PMConfig.get<bool>(WINTERMODE));},nullptr,Helpers::translated_word(FL_(NXT_SUBMENU3),_lang),"┡","┢",ENM_BISTABLE, []() {return (PMConfig.get<bool>(WINTERMODE));});
+    //SubMenu1.AddItem([]() {SetValue("Winter",SETVALUE_TOGGLE,SETVALUE_DIRECT,PMConfig.get<bool>(WINTERMODE));},nullptr,Helpers::translated_word(FL_(NXT_SUBMENU3),_lang),"┡","┢",ENM_BISTABLE, []() {return (PMConfig.get<bool>(WINTERMODE));});
 
     SubMenu2.AddItem(nullptr,nullptr,Helpers::translated_word(FL_(NXT_SUBMENU8),_lang),"▦",nullptr,ENM_ACTION,121);                     // Calibrate Probes
     SubMenu2.AddItem(nullptr,nullptr,Helpers::translated_word(FL_(NXT_SUBMENU9),_lang),"╆",nullptr,ENM_ACTION,1,ENMP_PH_REGULATION);    // pH Regulation
@@ -478,29 +479,3 @@ void NexMenu_Loop(EasyNex& _myNex)
     }   // End of switch(_myNex.currentPageId)
 }   // End of NexMenu_Loop function
 
-
-/**
- * @brief  Function to send standard commands to PoolServer either toggle or force set a value
- * @param  _server_command: command to send to server (e.g. "Winter" for WinterMode)
- * @param  _force_state: -1 to toggle, 0 or 1 to force set the value
- * @param  _state_table: -1 to send direct command (e.g. "_server_command=_force_state"), or value to change in the table (e.g. "_server_command=[_state_table,_force_state]")
- * @param  _current_state: current state of the command (used when toggling value, _force_state=-1)
- * @retval None
- */
-void SetValue(const char* _server_command, int _force_state, int _state_table, int _current_state)
-{
-  // Do we need to toggle
-  if (_force_state == -1) {
-    _force_state = (_current_state)? false:true;
-  }
-  
-  char Cmd[100];
-  if(_state_table == -1) {
-    sprintf(Cmd,"{\"%s\":%d}",_server_command,_force_state); // Build JSON Command
-    Debug.print(DBG_INFO,"[NEXTION] Sending command to server %s = %d",_server_command,_force_state);
-  } else {
-    sprintf(Cmd,"{\"%s\":[%d,%d]}",_server_command,_state_table,_force_state); // Build JSON Command
-    Debug.print(DBG_INFO,"[NEXTION] Sending command to server %s = [%d,%d]",_server_command,_state_table,_force_state);
-  }
-  xQueueSendToBack(queueIn,&Cmd,0);
-}

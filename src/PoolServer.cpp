@@ -53,13 +53,16 @@ void ProcessCommand(void *pvParameters)
 
         //Find command keyword in list and execute corresponding function handler
         JsonObject::iterator it = command.as<JsonObject>().begin();
-        auto it_find = server_handlers.find(it->key().c_str());
-        if (it_find != server_handlers.end()) {
-          it_find->second(command); // Call the function associated with the key
+        if (it == command.as<JsonObject>().end()) {
+          Debug.print(DBG_WARNING,"No command found in JSON: %s",JSONCommand);
         } else {
-          Debug.print(DBG_WARNING,"Command not found: %s", it->key().c_str());
+          auto it_find = server_handlers.find(it->key().c_str());
+          if (it_find != server_handlers.end()) {
+             it_find->second(command); // Call the function associated with the key
+          } else {
+            Debug.print(DBG_WARNING,"Command not registered: %s", it->key().c_str());
+          }
         }
-
         // Bip the buzzer to show good execution of the command
         if(PMConfig.get<bool>(BUZZERON))
         {

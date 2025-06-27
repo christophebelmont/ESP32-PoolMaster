@@ -16,6 +16,7 @@
 static uint8_t BitMap1 = 0;
 static uint8_t BitMap2 = 0;
 static uint8_t BitMap3 = 0;
+static uint8_t BitMap4 = 0;
 
 static const char* PoolTopicMeas1 = "Meas1";
 static const char* PoolTopicMeas2 = "Meas2";
@@ -37,6 +38,7 @@ void EncodeBitMap()
   BitMap1 = 0;
   BitMap2 = 0;
   BitMap3 = 0;
+  BitMap4 = 0;
 
   BitMap1 |= (FiltrationPump.IsRunning() & 1) << 7;
   BitMap1 |= (PhPump.IsRunning() & 1) << 6;
@@ -64,6 +66,16 @@ void EncodeBitMap()
   BitMap3 |= (SWGPump.IsRunning() & 1) << 2;        // 4
   BitMap3 |= (PMConfig.get<bool>(PHAUTOMODE) & 1) << 1;         // 2
   BitMap3 |= (PMConfig.get<bool>(ORPAUTOMODE) & 1) << 0;        // 1
+
+  /*******/
+  BitMap4 |= (0 & 1U) << 7;                                       // 128
+  BitMap4 |= (0 & 1U) << 6;                                       // 64
+  BitMap4 |= (0 & 1U) << 5;                                       // 32
+  BitMap4 |= (0 & 1U) << 4;                                       // 16
+  BitMap4 |= (0 & 1U) << 3;                                       // 8
+  BitMap4 |= (0 & 1U) << 2;                                       // 4
+  BitMap4 |= (0 & 1U) << 1;                                       // 2
+  BitMap4 |= (PMConfig.get<bool>(ELECTRORUNMODE) & 1) << 0;       // 1
 }
 
 void PublishTopic(const char* topic, JsonDocument& root)
@@ -303,7 +315,7 @@ void MeasuresPublish(void *pvParameters)
     {
         //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
         //Will publish something like {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0}
-        const int capacity = JSON_OBJECT_SIZE(7);
+        const int capacity = JSON_OBJECT_SIZE(8);
         StaticJsonDocument<capacity> root;
 
         root["TE"]      = PMData.AirTemp * 100;        // /!\ x100
@@ -313,6 +325,7 @@ void MeasuresPublish(void *pvParameters)
         root["Orp"]     = PMData.OrpValue;
         root["PhUpT"]   = PhPump.UpTime / 1000;
         root["ChlUpT"]  = ChlPump.UpTime / 1000;
+        root["IO4"]     = BitMap4;
 
         snprintf(tempTopicMeas,sizeof(tempTopicMeas),"%s/%s",PMConfig.get<const char*>(MQTT_TOPIC),PoolTopicMeas1);
         remove_duplicates_slash(tempTopicMeas);

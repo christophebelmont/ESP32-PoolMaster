@@ -9,6 +9,22 @@
 #include "EasyNextionEventManager.h"
 #include "translation.h"           // Include all translated strings into flash
 
+#define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+
+typedef enum EasyNextionMenuPages { // IMPORTANT: These values are dynamic. They are set in the code end send to Nextion
+  ENMP_PH_REGULATION        = 60,   // printh 23 02 50 3C
+  ENMP_ORP_REGULATION,      // 61
+  ENMP_FILTRATION,          // 62
+  ENMP_HEAT_REGULATION,     // 63
+  ENMP_PSI_OPTIONS,         // 64
+  ENMP_SWG_MODES,           // 65
+  ENMP_TANK_STATUS,         // 66
+  ENMP_RELAYS_CONTROL,      // 67
+  ENMP_WATER_LEVEL,         // 68
+  ENMP_SWG_REGULATION,      // 69
+
+  ENMP_EMPTY_CONTROLS       = 90 // Not dynamic. Default value for empty controls page (before page is completed with actual values)
+} enm_pages_t;
 
 static bool MainMenuLoaded = false;
 static bool SubMenuLoaded = false;
@@ -32,5 +48,4 @@ extern EasyNextionMenus  SubMenu12;
 
 void NexMenu_Loop(EasyNex&);
 void NexMenu_Init(EasyNex&);
-void SetValue(const char* , int = -1, int = -1, int = -1);
 #endif
