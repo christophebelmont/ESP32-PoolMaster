@@ -8,14 +8,14 @@
 //#define NEXTION_V1
 #define NEXTION_V2
 
-#define DEBUG_LEVEL DBG_DEBUG     // Possible levels : NONE/ERROR/WARNING/INFO/DEBUG/VERBOSE
+#define DEBUG_LEVEL DBG_INFO     // Possible levels : NONE/ERROR/WARNING/INFO/DEBUG/VERBOSE
 
 //Version of config stored in EEPROM
 //Random value. Change this value (to any other value) to revert the config to default values
 #define CONFIG_VERSION 70
 
 // Compile on development environment or production (if not defined)
-#define DEVT // Value defined in platformio.ini
+//#define DEVT // Value defined in platformio.ini
 
 // WiFi credentials
 #define WIFI_SCAN_INTERVAL  10000
@@ -24,7 +24,7 @@
 #ifdef DEVT
   #define HOSTNAME "PoolMaster_Dev"
 #else
-  #define HOSTNAME "MonjoliVexin"
+  #define HOSTNAME "PoolMaster"
 #endif 
 
 // Mail parameters and credentials
@@ -64,9 +64,7 @@
 //Type of pH and Orp sensors acquisition :
 //INT_ADS1115 : single ended signal with internal ADS1115 ADC (default)
 //EXT_ADS1115 : differential signal with external ADS1115 ADC (Loulou74 board)
-#ifndef DEVT
-  #define EXT_ADS1115
-#endif
+//#define EXT_ADS1115
 #define INT_ADS1115_ADDR ADS1115ADDRESS
 #define EXT_ADS1115_ADDR ADS1115ADDRESS+1 // or +2 or +3 depending on board setup
 
