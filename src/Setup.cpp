@@ -26,57 +26,6 @@ double ChlCumul = 0.;
 // Firmware revision
 String Firmw = FIRMW;
 
-//Settings structure and its default values
-// si pH+ : Kp=2250000.
-// si pH- : Kp=2700000.
-// Saved 7.3, 720.0, 1.8, 0.3, 16.0, 27.0, 3.0, -2.49, 6.87, 431.03, 0, 0.377923399, -0.17634473,
-#ifdef EXT_ADS1115
-StoreStruct storage =
-{ 
-  CONFIG_VERSION,
-  0, 0, 1, 0,
-  8, 11, 19, 8, 22, 20,
-  30000,
-  1800000, 1800000, 0, 0,
-  7.3, 720.0, 1.8, 0.3, 16.0, 27.0, 3.0, -2.50133333, 6.9, 431.03, 0, 0.377923399, -0.17634473,
-  2700000.0, 0.0, 0.0, 18000.0, 0.0, 0.0, 0.0, 0.0, 28.0, 7.3, 720., 1.3,
-  //100.0, 100.0, 20.0, 20.0, 1.5, 1.5,
-  15, 2,  //ajout
-  SWG_MODE_ADJUST, 8,
-  0, 1, 0, 0,
-  0,
-  IPAddress(192,168,0,0), // IP
-  1883,
-  "","",MQTTID,POOLTOPIC,
-  "",
-  587,
-  "", "","","",  
-  0
-};
-#else
-/*StoreStruct storage =
-{ 
-  CONFIG_VERSION,
-  0, 0, 1, 0,
-  13, 8, 21, 8, 22, 20,
-  30000,
-  1800000, 1800000, 0, 0,
-  7.3, 720.0, 1.8, 0.7, 10.0, 18.0, 3.0, 0.9583, 4.834, 129.2, 384.1, 1.31, -0.1,
-  2700000.0, 0.0, 0.0, 18000.0, 0.0, 0.0, 0.0, 0.0, 28.0, 7.3, 720., 1.3,
-  //25.0, 60.0, 20.0, 20.0, 1.5, 1.5,
-  15, 2,  //ajout
-  SWG_MODE_ADJUST, 8,
-  0, 1, 0, 0,
-  0,
-  IPAddress(192,168,0,0), // IP
-  1883,
-  "","",MQTTID,POOLTOPIC,
-  "",
-  587,
-  "", "","","",  
-  0
-};*/
-#endif
 tm timeinfo;
 
 RunTimeData PMData =
@@ -306,7 +255,10 @@ void setup()
   #endif
   PMConfig.initParam(PSICALIBCOEFFS0,     "PSICalibCoeffs0",        (double)0.377923399);
   PMConfig.initParam(PSICALIBCOEFFS1,     "PSICalibCoeffs1",        (double)-0.17634473);
-  PMConfig.initParam(PH_KP,               "PhKp",                   (double)2000000.0);
+  //Default values for pH and ORP PIDs
+  // si pH+ : Kp=2250000.
+  // si pH- : Kp=2700000.
+  PMConfig.initParam(PH_KP,               "PhKp",                   (double)2700000.0);
   PMConfig.initParam(PH_KI,               "PhKi",                   (double)0.0);
   PMConfig.initParam(PH_KD,               "PhKd",                   (double)0.0);
   PMConfig.initParam(ORP_KP,              "OrpKp",                  (double)2500.0);
