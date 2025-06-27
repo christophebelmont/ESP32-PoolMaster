@@ -67,18 +67,20 @@ void mqttInit() {
   mqttClient.onMessage(onMqttMessage);
   mqttClient.onPublish(onMqttPublish);
 
-  snprintf(PoolTopicStatus,sizeof(PoolTopicStatus),"%s/%s",storage.MQTT_TOPIC,TopicStatus);
+  //const char* TestTest = PMConfig.get<const char*>(MQTT_TOPIC);
+
+  snprintf(PoolTopicStatus,sizeof(PoolTopicStatus),"%s/%s",PMConfig.get<const char*>(MQTT_TOPIC),TopicStatus);
   remove_duplicates_slash(PoolTopicStatus);
   mqttClient.setWill(PoolTopicStatus,1,true,"{\"PoolMaster Online\":0}");
-  mqttClient.setServer(storage.MQTT_IP,storage.MQTT_PORT);
-  if(strlen(storage.MQTT_LOGIN)>0) {
-    mqttClient.setCredentials(storage.MQTT_LOGIN,storage.MQTT_PASS);
+  mqttClient.setServer(PMConfig.get<uint32_t>(MQTT_IP),PMConfig.get<uint32_t>(MQTT_PORT));
+  if(strlen(PMConfig.get<const char*>(MQTT_LOGIN))>0) {
+    mqttClient.setCredentials(PMConfig.get<const char*>(MQTT_LOGIN),PMConfig.get<const char*>(MQTT_PASS));
   }
-  mqttClient.setClientId(storage.MQTT_ID);
-} 
+  mqttClient.setClientId(PMConfig.get<const char*>(MQTT_ID));
+}
 
 void mqttErrorPublish(const char* Payload){
-  snprintf(PoolTopicError,sizeof(PoolTopicError),"%s/%s",storage.MQTT_TOPIC,TopicError);
+  snprintf(PoolTopicError,sizeof(PoolTopicError),"%s/%s",PMConfig.get<const char*>(MQTT_TOPIC),TopicError);
   remove_duplicates_slash(PoolTopicError);
 
   if (mqttClient.publish(PoolTopicError, 1, true, Payload) !=0)
@@ -170,11 +172,11 @@ void WiFiEvent(WiFiEvent_t event){
 // "status" will switch to "offline". Very useful to check that the system is alive and functional
 void onMqttConnect(bool sessionPresent){
   Debug.print(DBG_INFO,"Connected to MQTT, present session: %d",sessionPresent);
-  snprintf(PoolTopicAPI,sizeof(PoolTopicAPI),"%s/%s",storage.MQTT_TOPIC,TopicAPI);
+  snprintf(PoolTopicAPI,sizeof(PoolTopicAPI),"%s/%s",PMConfig.get<const char*>(MQTT_TOPIC),TopicAPI);
   remove_duplicates_slash(PoolTopicAPI);  
   mqttClient.subscribe(PoolTopicAPI,2);
 
-  snprintf(PoolTopicStatus,sizeof(PoolTopicStatus),"%s/%s",storage.MQTT_TOPIC,TopicStatus);
+  snprintf(PoolTopicStatus,sizeof(PoolTopicStatus),"%s/%s",PMConfig.get<const char*>(MQTT_TOPIC),TopicStatus);
   remove_duplicates_slash(PoolTopicStatus);
   mqttClient.publish(PoolTopicStatus,1,true,"{\"PoolMaster Online\":1}");
   MQTTConnection = true;

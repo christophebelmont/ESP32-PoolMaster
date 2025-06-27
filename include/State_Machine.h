@@ -8,6 +8,9 @@
 #include <functional>
 
 extern DeviceManager PoolDeviceManager;
+extern void SetPhPID(bool);
+extern void SetOrpPID(bool);
+extern void mqttErrorPublish(const char*);
 
 bool FillingPump_StartCondition(void);
 bool FillingPump_StopCondition(void);
@@ -18,6 +21,7 @@ bool FiltrationPump_StartCondition(void);
 bool FiltrationPump_StopCondition(void);
 void FiltrationPump_StartAction(void);
 void FiltrationPump_StopAction(void);
+void FiltrationPump_LoopActions(void);
 
 bool RobotPump_StartCondition(void);
 bool RobotPump_StopCondition(void);

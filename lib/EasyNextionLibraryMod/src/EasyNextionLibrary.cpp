@@ -9,20 +9,12 @@
 #include "EasyNextionLibrary.h"
 //#endif
 
-#ifndef trigger_h
-#include "trigger.h"
-#endif
-
 //-------------------------------------------------------------------------
  // Constructor : Function that handles the creation and setup of instances
 //---------------------------------------------------------------------------
 
 EasyNex::EasyNex(HardwareSerial& serial){  // Constructor's parameter is the Serial we want to use
   _serial = &serial;
-}
-
-EasyNex::EasyNex(WiFiServer& Telnetserver){  // Constructor's parameter is the Telnet Server we want to use
-
 }
 
 void EasyNex::begin(unsigned long baud){
@@ -36,10 +28,6 @@ void EasyNex::begin(unsigned long baud){
       } 
         _serial->read();                // Read and delete bytes
     }
-  }
-
-  if(_server != nullptr) {
-    //Telnet
   }
 
   delay(100);            // Wait for everything to initialize properly
@@ -63,8 +51,6 @@ void EasyNex::writeNum(String compName, uint32_t val){
       _serial->print("=");
       _serial->print(_numVal);
       _serial->print("\xFF\xFF\xFF");
-    } else if(_server != nullptr) {
-      // Telnet
     }
   }
 }
@@ -86,9 +72,7 @@ void EasyNex::writeStr(String command, String txt){
       if(_serial != nullptr) {
         _serial->print(_component);
         _serial->print("\xFF\xFF\xFF");
-      } else if(_server != nullptr) {
-        // Telnet
-      }
+      } 
     }else if(_strVal != "cmd"){
       if(_serial != nullptr) {
         _serial->print(_component);
@@ -96,8 +80,6 @@ void EasyNex::writeStr(String command, String txt){
         _serial->print(_strVal);
         _serial->print("\"");
         _serial->print("\xFF\xFF\xFF");
-      } else if(_server != nullptr) {
-        //Telnet
       }
     }
   }
@@ -186,10 +168,7 @@ String EasyNex::readStr(String TextComponent)
       }
     }
   } 
-  else if(_server != nullptr) {
-    // Telnet
-    _readString = "";
-  }
+
   return _readString;
 }
 
@@ -293,10 +272,6 @@ uint32_t EasyNex::readNumber(String component){
       }
     }
   } 
-  else if(_server != nullptr) {
-    // Telnet
-    _numberValue = 777777;  // If no Serial or Server is set, return 777777
-  }
   
   if(_endOfCommandFound == true){
     // We can continue with the little endian conversion
@@ -325,9 +300,6 @@ int  EasyNex::readByte(){
 
  if(_serial != nullptr) {
   _tempInt = _serial->read(); 
-  } else if(_server != nullptr) {
-    // Telnet
-    _tempInt = 0;  // If no Serial or Server is set, return -1
   }
 
  return _tempInt;
@@ -352,6 +324,8 @@ bool EasyNex::hasPageChanged()
 /*! WARNING: This function must be called repeatedly to response touch events
  * from Nextion touch panel. 
  * Actually, you should place it in your loop function.
+ * 
+ * Return false if the Nextion is sleeping and true if it is awake
  */
 bool EasyNex::NextionListen(){
   if (_serial != nullptr)
@@ -382,16 +356,26 @@ bool EasyNex::NextionListen(){
     
         if(_cmdFound == true){                  // So..., A command is found (bytes in _serial buffer egual more than len)
           _cmd1 = _serial->read();              // Read and store the next byte. This is the command group
-          readCommand();                        // We call the readCommand(), 
+          //readCommand();                        // We call the readCommand(), 
                                                 // in which we read, seperate and execute the commands 
+          LastActionMillis = millis();
+
+          for(int i = 0; i < _len - 1; i++){ // Read the rest of the bytes
+            _parambuffer[i] = _serial->read();  // Read and store the next bytes (parameters) in the _parambuffer array
+          }
+
+          // Reserved commands - page management for instance
+          readReservedEvents(_cmd1, _len - 1, _parambuffer);
+
+            // Trigger the event with the command and parameters
+          if(_eventManager != nullptr) {
+            _eventManager->triggerEvent(_cmd1, _len - 1, _parambuffer); // Trigger the corresponding registered event with the command and parameters
+          }
         }
       }
     }
   }
-  else if (_server != nullptr) {
-    // Telnet
-  }
-  
+ 
   //Check if this is time to sleep
   if((unsigned long)(millis() - LastActionMillis) >= TFT_SLEEP && !Nextion_Sleeping && Nextion_CanSleep)
   {

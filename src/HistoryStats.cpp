@@ -36,9 +36,9 @@ void HistoryStats(void *pvParameters)
     #endif    
 
     // Store History Samples
-    pH_Samples.push((int)(storage.PhValue*100));
-    Orp_Samples.push((int)(storage.OrpValue));
-    WTemp_Samples.push((int)(storage.WaterTemp*10));
+    pH_Samples.push((int)(PMData.PhValue*100));
+    Orp_Samples.push((int)(PMData.OrpValue));
+    WTemp_Samples.push((int)(PMData.WaterTemp*10));
 
     // Check NTP Connection and reconnect if needed
 

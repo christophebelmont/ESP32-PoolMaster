@@ -4,16 +4,30 @@
 //Call this in the main loop, for every loop, as often as possible
 void Pump::loop()
 {
-  if (shouldStartHandler && shouldStartHandler() && !IsRunning()) {
-      Start();
+  u_int8_t bitMaskErrors = 0;
+  // Call the loop handler if it exists, if the pump is not running
+  // and only if the interlock pump is running (if it exists)
+  if (interlock_pump_ == nullptr || (interlock_pump_ != nullptr && interlock_pump_->IsEnabled())) {
+    if (shouldStartHandler && shouldStartHandler() && !IsRunning()) {
+        // If started successfully, call the onStart handler
+        bitMaskErrors = Start(); // Start the pump and reset UpTime
+        if(bitMaskErrors == 0) { // No error at startup
+            if (onStartHandler) onStartHandler(); // Appel du handler
+        }
+    }
   }
 
   if (shouldStopHandler && shouldStopHandler() && IsRunning()) {
-      Stop();
+      if (Stop() == true) {
+          // If stopped successfully, call the onStop handler
+          if (onStopHandler) onStopHandler(); // Appel du handler
+      }
   }
 
   if(IsRunning())
   {
+    if (loopHandler) loopHandler(); // Appel du handler à chaque boucle
+
     UpTime += millis() - LastLoopMillis;
     LastLoopMillis = millis();
 
@@ -37,23 +51,29 @@ void Pump::loop()
 }
 
 //Switch pump ON
-bool Pump::Start(bool _resetUpTime)
+u_int8_t Pump::Start(bool _resetUpTime)
 {
+  u_int8_t bitMaskErrors = 0;
+
   if (_resetUpTime) {
     ResetUpTime(); // Reset UpTime if requested
   }
 
+  // Check why a Pump would not start
+  bitMaskErrors |= (UpTimeError & 1) << 0; // Bit 0: UpTime error
+  bitMaskErrors |= (!TankLevel() & 1) << 1; // Bit 1: Tank level error
+  bitMaskErrors |= (!CheckInterlock() & 1) << 2; // Bit 2: Interlock error
+
   if((!IsRunning()) && !UpTimeError && TankLevel() && CheckInterlock())
   {
-    if (!this->Relay::Enable())
-      return false;
-    
-    LastLoopMillis = StartTime = millis(); 
-
-    if (onStartHandler) onStartHandler(); // Appel du handler
-
-    return true; 
-  } else return false;
+    if (!this->Relay::Enable()) {
+      bitMaskErrors |= (1 << 3); // Bit 3: Relay error
+      return bitMaskErrors;
+    } else {
+      LastLoopMillis = StartTime = millis(); 
+    }
+  }
+  return bitMaskErrors;
 }
 
 //Switch pump OFF
@@ -69,7 +89,7 @@ bool Pump::Stop()
     
     UpTime += millis() - LastLoopMillis; 
 
-    if (onStopHandler) onStopHandler(); // Appel du handler
+    
 
     return true;
   } else return false;
@@ -158,7 +178,7 @@ void Pump::SetMinUpTime(unsigned long _minuptime)
 //This is typically called every day at midnight
 void Pump::ResetUpTime()
 {
-  LastLoopMillis = 0;
+  StartTime = LastLoopMillis = 0;
   StopTime = 0;
   UpTime = 0;
   CurrMaxUpTime = MaxUpTime;
@@ -261,30 +281,30 @@ void Pump::LoadPreferences(Preferences& prefs, uint8_t pin_id)  {
 
     snprintf(key, sizeof(key), "d%d_fr", pin_id);
     flowrate = prefs.getDouble(key, flowrate);
-    //Serial.printf("Read preference %s = %d\r\n",key, flowrate);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, flowrate);
 
     snprintf(key, sizeof(key), "d%d_tv", pin_id );
     tankvolume = prefs.getDouble(key, tankvolume);
-    //Serial.printf("Read preference %s = %d\r\n",key, tankvolume);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, tankvolume);
 
     snprintf(key, sizeof(key), "d%d_tf", pin_id);
     tankfill = prefs.getDouble(key, tankfill);
-    //Serial.printf("Read preference %s = %d\r\n",key, tankfill);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, tankfill);
 
     snprintf(key, sizeof(key), "d%d_tl", pin_id);
     tank_level_pin = prefs.getUChar(key, tank_level_pin);
-    //Serial.printf("Read preference %s = %d\r\n",key, tank_level_pin);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, tank_level_pin);
 
     snprintf(key, sizeof(key), "d%d_il", pin_id);
     interlock_pin_id = prefs.getUChar(key, interlock_pin_id);
-    //Serial.printf("Read preference %s = %d\r\n",key, interlock_pin_id);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, interlock_pin_id);
 
     snprintf(key, sizeof(key), "d%d_mu", pin_id);
     MaxUpTime = prefs.getULong(key, MaxUpTime);
-    //Serial.printf("Read preference %s = %d\r\n",key, MaxUpTime);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, MaxUpTime);
 
     snprintf(key, sizeof(key), "d%d_mi", pin_id);
     MinUpTime = prefs.getULong(key, MinUpTime);
-    //Serial.printf("Read preference %s = %d\r\n",key, MinUpTime);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, MinUpTime);
   }
 

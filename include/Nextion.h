@@ -14,12 +14,13 @@
 #include <Arduino.h>
 #include "Config.h"
 #include "PoolMaster.h"
-#include "EasyNextionLibrary.h"
-#include "EasyNextionMenus.h"
+#include "EasyNextionMultiStream.h"
 #include "Nextion_Menu.h"
+#include "Nextion_Events.h"
 #include "translation.h"           // Include all translated strings into flash
 #include "HistoryStats.h"
 #include "uptime.h"
+
 
 #define GLOBAL  "globals" // Name of Nextion page to store global variables
 #define MAX_SHOWN_NETWORKS  15  // Maximum number of scanned networks to display
@@ -43,17 +44,15 @@ extern CircularBuffer<int,NUMBER_OF_HISTORY_SAMPLES> pH_Samples;
 extern CircularBuffer<int,NUMBER_OF_HISTORY_SAMPLES> Orp_Samples;
 extern CircularBuffer<int,NUMBER_OF_HISTORY_SAMPLES> WTemp_Samples;
 
-
-BaseType_t xWasDelayed;     // Return value for task delay
-
-
 // Used for tasks
 void stack_mon(UBaseType_t&);
 
 //Nextion TFT object. Choose which ever Serial port
 //you wish to connect to (not "Serial" which is used for debug), here Serial2 UART
 //WiFiServer myServer(23); // Telnet Server on port 23
-EasyNex myNex(Serial2);
+// === Objet global MultiStream ===
+//extern MultiStream MultiOutput(&Serial2);
+//extern EasyNex myNex(Serial2); // Create Nextion object using MultiStream
 
 // Functions prototypes
 void ResetTFT(void);

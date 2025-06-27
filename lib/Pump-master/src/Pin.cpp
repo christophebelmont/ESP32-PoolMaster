@@ -146,20 +146,15 @@ void PIN::LoadPreferences(Preferences& prefs, uint8_t pin_id) {
   // pin_number
   snprintf(key, sizeof(key), "d%d_pn", pin_id);
   pin_number = prefs.getUChar(key, pin_number);
-  //Serial.printf("Read preference %s = %d\r\n",key, pin_number);
+  Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, pin_number);
 
   // pin_direction
   snprintf(key, sizeof(key), "d%d_pd", pin_id);
   pin_direction = prefs.getUChar(key, pin_direction);
-  //Serial.printf("Read preference %s = %d\r\n",key, pin_direction);
-  
-  // Do not read pin_id from preferences
-  // pin_id
-  snprintf(key, sizeof(key), "d%d_id", pin_id);
-//      pin_id = prefs.getUChar(key, pin_id);
+  Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, pin_direction);
 
   // pin_active_level
   snprintf(key, sizeof(key), "d%d_al", pin_id);
   active_level = prefs.getBool(key, active_level);
-  Serial.printf("Read preference %s = %d\r\n",key, active_level);
+  Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, active_level);
 }

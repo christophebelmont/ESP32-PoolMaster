@@ -92,14 +92,14 @@ void AnalogPoll(void *pvParameters)
         
       //Ph
       samples_Ph.add(ph_sensor_value);          // compute average of pH from center 5 measurements among 11
-      storage.PhValue = (samples_Ph.getAverage(5)*0.1875/1000.)*storage.pHCalibCoeffs0 + storage.pHCalibCoeffs1;
+      PMData.PhValue = (samples_Ph.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PHCALIBCOEFFS0) + PMConfig.get<double>(PHCALIBCOEFFS1);
 
       //ORP
       samples_Orp.add(orp_sensor_value);        // compute average of ORP from last 5 measurements
-      storage.OrpValue = (samples_Orp.getAverage(5)*0.1875/1000.)*storage.OrpCalibCoeffs0 + storage.OrpCalibCoeffs1;
+      PMData.OrpValue = (samples_Orp.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(ORPCALIBCOEFFS0) + PMConfig.get<double>(ORPCALIBCOEFFS1);
 
       Debug.print(DBG_DEBUG,"pH: %5.0f - %4.2f - ORP: %5.0f - %3.0fmV - PSI: %5.0f - %4.2fBar\r",
-        ph_sensor_value,storage.PhValue,orp_sensor_value,storage.OrpValue,psi_sensor_value,storage.PSIValue);
+        ph_sensor_value,PMData.PhValue,orp_sensor_value,PMData.OrpValue,psi_sensor_value,PMData.PSIValue);
     }*/
     
     adc_int.update();
@@ -110,8 +110,8 @@ void AnalogPoll(void *pvParameters)
 
       //PSI (water pressure)
       samples_PSI.add(psi_sensor_value);        // compute average of PSI from last 5 measurements
-      storage.PSIValue = (samples_PSI.getAverage(5)*0.1875/1000.)*storage.PSICalibCoeffs0 + storage.PSICalibCoeffs1;
-      storage.PSIValue = (storage.PSIValue < 0)? 0 : storage.PSIValue;
+      PMData.PSIValue = (samples_PSI.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PSICALIBCOEFFS0) + PMConfig.get<double>(PSICALIBCOEFFS1);
+      PMData.PSIValue = (PMData.PSIValue < 0)? 0 : PMData.PSIValue;
     }
     unlockI2C();
 
@@ -169,25 +169,25 @@ void AnalogPoll(void *pvParameters)
         
         //Ph
         samples_Ph.add(ph_sensor_value);          // compute average of pH from center 5 measurements among 11
-        storage.PhValue = (samples_Ph.getAverage(5)*0.1875/1000.)*storage.pHCalibCoeffs0 + storage.pHCalibCoeffs1;
+        PMData.PhValue = (samples_Ph.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PHCALIBCOEFFS0) + PMConfig.get<double>(PHCALIBCOEFFS1);
 
 #ifdef SIMU
         if(!init_simu){
             if(newpHOutput) {
-                pHTab[iw] = storage.PhPIDOutput;
+                pHTab[iw] = PMData.PhPIDOutput;
                 pHCumul = pHTab[0]+pHTab[1]+pHTab[2];
                 iw++;
                 iw %= 3;
             }
-            storage.PhValue = pHLastValue + pHCumul/4500000.*(double)((millis()-pHLastTime)/3600000.);
-            pHLastValue = storage.PhValue;
+            PMData.PhValue = pHLastValue + pHCumul/4500000.*(double)((millis()-pHLastTime)/3600000.);
+            pHLastValue = PMData.PhValue;
             pHLastTime = millis();
         } else {
             init_simu = false;
             pHLastTime = millis();
             pHLastValue = 7.0;
-            storage.PhValue = pHLastValue;
-            storage.OrpValue = OrpLastValue;
+            PMData.PhValue = pHLastValue;
+            PMData.OrpValue = OrpLastValue;
             OrpLastTime = millis();
             OrpLastValue = 730.0;
             for(uint8_t i=0;i<3;i++) {
@@ -199,29 +199,29 @@ void AnalogPoll(void *pvParameters)
 
         //ORP
         samples_Orp.add(orp_sensor_value);        // compute average of ORP from last 5 measurements
-        storage.OrpValue = (samples_Orp.getAverage(5)*0.1875/1000.)*storage.OrpCalibCoeffs0 + storage.OrpCalibCoeffs1;
+        PMData.OrpValue = (samples_Orp.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(ORPCALIBCOEFFS0) + PMConfig.get<double>(ORPCALIBCOEFFS1);
 
 #ifdef SIMU
         if(!init_simu){
             if(newChlOutput) {
-            ChlTab[jw] = storage.OrpPIDOutput;
+            ChlTab[jw] = PMData.OrpPIDOutput;
             ChlCumul = ChlTab[0]+ChlTab[1]+ChlTab[2];
             jw++;
             jw %= 3;
             }    
-            storage.OrpValue = OrpLastValue + ChlCumul/36000.*(double)((millis()-OrpLastTime)/3600000.);
-            OrpLastValue = storage.OrpValue;
+            PMData.OrpValue = OrpLastValue + ChlCumul/36000.*(double)((millis()-OrpLastTime)/3600000.);
+            OrpLastValue = PMData.OrpValue;
             OrpLastTime = millis();    
         } 
 #endif
 
         //PSI (water pressure)
         samples_PSI.add(psi_sensor_value);        // compute average of PSI from last 5 measurements
-        storage.PSIValue = (samples_PSI.getAverage(5)*0.1875/1000.)*storage.PSICalibCoeffs0 + storage.PSICalibCoeffs1;
-        storage.PSIValue = (storage.PSIValue < 0)? 0 : storage.PSIValue;
+        PMData.PSIValue = (samples_PSI.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PSICALIBCOEFFS0) + PMConfig.get<double>(PSICALIBCOEFFS1);
+        PMData.PSIValue = (PMData.PSIValue < 0)? 0 : PMData.PSIValue;
 
         Debug.print(DBG_DEBUG,"pH: %5.0f - %4.2f - ORP: %5.0f - %3.0fmV - PSI: %5.0f - %4.2fBar\r",
-            ph_sensor_value,storage.PhValue,orp_sensor_value,storage.OrpValue,psi_sensor_value,storage.PSIValue);
+            ph_sensor_value,PMData.PhValue,orp_sensor_value,PMData.OrpValue,psi_sensor_value,PMData.PSIValue);
     }
     unlockI2C();
 
@@ -272,7 +272,7 @@ void StatusLights(void *pvParameters)
     if(line == 0)
     {
         line = 1;
-        status |= (storage.AutoMode & 1) << 2;
+        status |= (PMConfig.get<bool>(AUTOMODE) & 1) << 2;
         status |= (AntiFreezeFiltering & 1) << 3;        
         status |= (FillingPump.UpTimeError  & 1) << 6;
         status |= (PSIError & 1) << 7;
@@ -286,7 +286,7 @@ void StatusLights(void *pvParameters)
         status |= (PhPump.UpTimeError & 1) << 6;
         status |= (ChlPump.UpTimeError & 1) << 7;  
     }
-    if(storage.BuzzerOn)
+    if(PMConfig.get<bool>(BUZZERON))
     {
       (status & 0xF0) ? digitalWrite(BUZZER,HIGH) : digitalWrite(BUZZER,LOW) ;
     }else{
@@ -344,9 +344,9 @@ void pHRegulation(void *pvParameters)
       if (FiltrationPump.IsRunning()) {
   
           if(PhPID.Compute()){
-            Debug.print(DBG_INFO,"Ph  regulation: %10.2f, %13.9f, %13.9f, %17.9f",storage.PhPIDOutput,storage.PhValue,storage.Ph_SetPoint,storage.Ph_Kp);
-            if(storage.PhPIDOutput < (double)30000.) storage.PhPIDOutput = 0.;
-            Debug.print(DBG_INFO,"Ph  regulation: %10.2f",storage.PhPIDOutput);
+            Debug.print(DBG_INFO,"Ph  regulation: %10.2f, %13.9f, %13.9f, %17.9f",PMData.PhPIDOutput,PMData.PhValue,PMData.Ph_SetPoint,PMConfig.get<double>(PH_KP));
+            if(PMData.PhPIDOutput < (double)30000.) PMData.PhPIDOutput = 0.;
+            Debug.print(DBG_INFO,"Ph  regulation: %10.2f",PMData.PhPIDOutput);
         #ifdef SIMU
             newpHOutput = true;
         #endif            
@@ -358,22 +358,27 @@ void pHRegulation(void *pvParameters)
            turn the Acid pump on/off based on pid output
           ************************************************/
           unsigned long now = millis();
-          if (now - storage.PhPIDwindowStartTime > storage.PhPIDWindowSize)
+          if (now - PMData.PhPIDwStart > PMConfig.get<unsigned long>(PHPIDWINDOWSIZE))
           {
             //time to shift the Relay Window
-            storage.PhPIDwindowStartTime += storage.PhPIDWindowSize;
-          }
-          if ((unsigned long)storage.PhPIDOutput <= now - storage.PhPIDwindowStartTime)
+            PMData.PhPIDwStart += PMConfig.get<double>(PHPIDWINDOWSIZE);
+            }
+          if ((unsigned long)PMData.PhPIDOutput <= now - PMData.PhPIDwStart)
             PhPump.Stop();
           else
             PhPump.Start();   
       } else {
         PhPID.SetMode(MANUAL);
-        storage.Ph_RegulationOnOff = 0;
-        storage.PhPIDOutput = 0.0;
+        PMData.Ph_RegOnOff = false;
+        PMData.PhPIDOutput = 0.0;
         PhPump.Stop();
       } 
     }
+
+ unsigned long PhPIDwStart, OrpPIDwStart;
+    double AirTemp;
+    double PhPIDOutput, OrpPIDOutput;
+
     #ifdef CHRONO
     t_act = millis() - td;
     if(t_act > t_max) t_max = t_act;
@@ -417,9 +422,9 @@ void OrpRegulation(void *pvParameters)
       if (FiltrationPump.IsRunning())
       {
         if(OrpPID.Compute()){
-          Debug.print(DBG_INFO,"ORP regulation: %10.2f, %13.9f, %12.9f, %17.9f",storage.OrpPIDOutput,storage.OrpValue,storage.Orp_SetPoint,storage.Orp_Kp);
-          if(storage.OrpPIDOutput < (double)30000.) storage.OrpPIDOutput = 0.;    
-            Debug.print(DBG_INFO,"Orp regulation: %10.2f",storage.OrpPIDOutput);
+          Debug.print(DBG_INFO,"ORP regulation: %10.2f, %13.9f, %12.9f, %17.9f",PMData.OrpPIDOutput,PMData.OrpValue,PMData.Orp_SetPoint,PMConfig.get<double>(ORP_KP));
+          if(PMData.OrpPIDOutput < (double)30000.) PMData.OrpPIDOutput = 0.;    
+            Debug.print(DBG_INFO,"Orp regulation: %10.2f",PMData.OrpPIDOutput);
       #ifdef SIMU
             newChlOutput = true;
       #endif      
@@ -431,22 +436,23 @@ void OrpRegulation(void *pvParameters)
          turn the Chl pump on/off based on pid output
         ************************************************/
         unsigned long now = millis();
-        if (now - storage.OrpPIDwindowStartTime > storage.OrpPIDWindowSize)
+        if (now - PMData.OrpPIDwStart > PMConfig.get<double>(ORPPIDWINDOWSIZE))
         {
           //time to shift the Relay Window
-          storage.OrpPIDwindowStartTime += storage.OrpPIDWindowSize;
+          PMData.OrpPIDwStart += PMConfig.get<double>(ORPPIDWINDOWSIZE);
         }
-        if ((unsigned long)storage.OrpPIDOutput <= now - storage.OrpPIDwindowStartTime)
+        if ((unsigned long)PMData.OrpPIDOutput <= now - PMData.OrpPIDwStart)
           ChlPump.Stop();
         else
           ChlPump.Start();
       } else {
         OrpPID.SetMode(MANUAL);
-        storage.Orp_RegulationOnOff = 0;
-        storage.OrpPIDOutput = 0.0;
+        PMData.Orp_RegOnOff = false;
+        PMData.OrpPIDOutput = 0.0;
         ChlPump.Stop();
       } 
     }
+
     #ifdef CHRONO
     t_act = millis() - td;
     if(t_act > t_max) t_max = t_act;
@@ -552,18 +558,18 @@ void getTemp(void *pvParameters)
     double temp = sensors_W.getTempC(DS18B20_W);
     if (temp == NAN || temp == -127) {
       Debug.print(DBG_WARNING,"Error getting Water temperature");
-    }  else storage.WaterTemp = temp;
-    samples_WTemp.add(storage.WaterTemp);
-    storage.WaterTemp = samples_WTemp.getAverage(5);
-    Debug.print(DBG_VERBOSE,"DS18B20_W: %6.2f C",storage.WaterTemp);
+    }  else PMData.WaterTemp = temp;
+    samples_WTemp.add(PMData.WaterTemp);
+    PMData.WaterTemp = samples_WTemp.getAverage(5);
+    Debug.print(DBG_VERBOSE,"DS18B20_W: %6.2f C",PMData.WaterTemp);
 
     temp = sensors_A.getTempC(DS18B20_A);
     if (temp == NAN || temp == -127) {
       Debug.print(DBG_WARNING,"Error getting Air temperature");
-    }  else storage.AirTemp = temp;
-    samples_ATemp.add(storage.AirTemp);
-    storage.AirTemp = samples_ATemp.getAverage(5);
-    Debug.print(DBG_VERBOSE,"DS18B20_A: %6.2f C",storage.AirTemp);
+    }  else PMData.AirTemp = temp;
+    samples_ATemp.add(PMData.AirTemp);
+    PMData.AirTemp = samples_ATemp.getAverage(5);
+    Debug.print(DBG_VERBOSE,"DS18B20_A: %6.2f C",PMData.AirTemp);
 
     sensors_W.requestTemperatures();
     sensors_A.requestTemperatures();

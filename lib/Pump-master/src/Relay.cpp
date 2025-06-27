@@ -169,7 +169,7 @@ void Relay::LoadPreferences(Preferences& prefs, uint8_t pin_id)
     bool tmp_operation_mode;
     snprintf(key, sizeof(key), "d%d_om", pin_id);
     tmp_operation_mode = prefs.getBool(key, operation_mode);
-    //Serial.printf("Read preference %s = %d\r\n",key, tmp_operation_mode);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, operation_mode);
 
     Initialize(tmp_operation_mode);    // Initialize before changing the class variable because
                                     // function needs to know what operation mode we change from

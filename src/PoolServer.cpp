@@ -61,7 +61,7 @@ void ProcessCommand(void *pvParameters)
         }
 
         // Bip the buzzer to show good execution of the command
-        if(storage.BuzzerOn)
+        if(PMConfig.get<bool>(BUZZERON))
         {
           // Sound configuration applied
           digitalWrite(BUZZER,HIGH);

@@ -3,8 +3,8 @@
  * Copyright (c) 2020 Athanasios Seitanis < seithagta@gmail.com >. 
  * All rights reserved under the library's licence
  */
-#include <WiFi.h>
-#include <WiFiServer.h>
+//#include <WiFi.h>
+//#include <WiFiServer.h>
 #if ARDUINO >= 100    
  #include "Arduino.h"
 #else
@@ -18,13 +18,7 @@
 #define EasyNextionLibrary_h
 #include "EasyNextionEventManager.h"
 
-
 #define TFT_SLEEP 60000L
-
-// Translation management
-#define FL_(list_name) (__pstr__L_##list_name)
-#define MAKE_WORD_TRANSLATION(list_name, ...) static const char * const __pstr__L_##list_name[] = {__VA_ARGS__, nullptr};
-#define MAKE_TRANSLATION(list_name, ...)      static const char * const __pstr__L_##list_name[] = {__VA_ARGS__, nullptr};
 
 /**************************************************************************/
 /** 
@@ -86,8 +80,10 @@ class EasyNex {
 
 	public:
     EasyNex(HardwareSerial& serial);
-    EasyNex(WiFiServer&);
 		void begin(unsigned long baud = 9600);
+    void SetEventManager(EasyNextionEventManager* eventManager) {
+      _eventManager = eventManager;
+    }
     void writeNum(String, uint32_t);
     void writeStr(String, String txt = "cmd");
 		bool NextionListen(void);
@@ -133,10 +129,8 @@ class EasyNex {
   //-----------------------------------------
 	private:
     HardwareSerial* _serial = nullptr;
-    WiFiServer *_server = nullptr;
-    void readCommand(void);
-    void callTriggerFunction(void);
-    void calltriggermenuFunction(void);
+
+    void readReservedEvents(u_int8_t , u_int8_t , u_int8_t (&)[10]);
     
       //----------------------------------------------
      // for function writeNum() (write to numeric attribute)
@@ -164,11 +158,14 @@ class EasyNex {
     boolean _cmdFound;
     uint8_t _cmd1;
     uint8_t _len;
-    
+    uint8_t _parambuffer[10]; // Used to store all the parameters of the custom commands
+
       //---------------------------------------
 		 // for function readStr()
     //-----------------------------------------  
     String _readString;
+
+    // Even manager for handling events
     EasyNextionEventManager* _eventManager;
     
 };

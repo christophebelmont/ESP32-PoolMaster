@@ -51,16 +51,16 @@ void PoolMaster(void *pvParameters)
     smtp.debug(1);
   #endif
   smtp.callback(smtpCallback);
-  config.server.host_name = storage.SMTP_SERVER;
-  config.server.port = storage.SMTP_PORT;
-  config.login.email = storage.SMTP_LOGIN;
-  config.login.password = storage.SMTP_PASS;
+  config.server.host_name = PMConfig.get<const char*>(SMTP_SERVER);
+  config.server.port = PMConfig.get<uint32_t>(SMTP_PORT);
+  config.login.email = PMConfig.get<const char*>(SMTP_LOGIN);
+  config.login.password = PMConfig.get<const char*>(SMTP_PASS);
   config.login.user_domain = "127.0.0.1";
 
   message.sender.name = F("PoolMaster");
-  message.sender.email = storage.SMTP_SENDER;
+  message.sender.email = PMConfig.get<const char*>(SMTP_SENDER);
   message.subject = F("PoolMaster Event");
-  message.addRecipient(F("Home"), storage.SMTP_RECIPIENT);
+  message.addRecipient(F("Home"), PMConfig.get<const char*>(SMTP_RECIPIENT));
   message.text.charSet = "us-ascii";
   message.text.transfer_encoding = Content_Transfer_Encoding::enc_7bit;
   message.priority = esp_mail_smtp_priority_low;
@@ -163,25 +163,29 @@ void PoolMaster(void *pvParameters)
     if (hour() == 15 && (millis() - FiltrationPump.StartTime) > 300000 && !d_calc)
     #endif
     {
-        if (storage.WaterTemp < storage.WaterTempLowThreshold){
-            storage.FiltrationDuration = 2;}
-        else if (storage.WaterTemp >= storage.WaterTempLowThreshold && storage.WaterTemp < storage.WaterTemp_SetPoint){
-            storage.FiltrationDuration = round(storage.WaterTemp / 3.);}
-        else if (storage.WaterTemp >= storage.WaterTemp_SetPoint){
-            storage.FiltrationDuration = round(storage.WaterTemp / 2.);}
-    
-        storage.FiltrationStart = 15 - (int)round(storage.FiltrationDuration / 2.);
-        if (storage.FiltrationStart < storage.FiltrationStartMin)
-        storage.FiltrationStart = storage.FiltrationStartMin;    
-        storage.FiltrationStop = storage.FiltrationStart + storage.FiltrationDuration;
-        if (storage.FiltrationStop > storage.FiltrationStopMax)
-        storage.FiltrationStop = storage.FiltrationStopMax;
+        if (PMData.WaterTemp < PMConfig.get<double>(WATERTEMPLOWTHRESHOLD)){
+            PMData.FiltrDuration = 2; // Set Filtration duration to 2 hours
+        }
+        else if (PMData.WaterTemp >= PMConfig.get<double>(WATERTEMPLOWTHRESHOLD) && PMData.WaterTemp < PMConfig.get<double>(WATERTEMP_SETPOINT)){
+            PMData.FiltrDuration = round(PMData.WaterTemp / 3.);
+        }
+        else if (PMData.WaterTemp >= PMConfig.get<double>(WATERTEMP_SETPOINT)){
+            PMData.FiltrDuration = round(PMData.WaterTemp / 2.);
+        }
 
-        saveParam("FiltrStart",storage.FiltrationStart);  
-        saveParam("FiltrStop",storage.FiltrationStop);  
+        uint8_t _FiltStart, _FiltStop;
+        _FiltStart = 15 - (int)round(PMData.FiltrDuration / 2.);
+        if (_FiltStart < PMConfig.get<uint8_t>(FILTRATIONSTARTMIN))
+            _FiltStart = PMConfig.get<uint8_t>(FILTRATIONSTARTMIN);
+        _FiltStop = _FiltStart + PMData.FiltrDuration;
+        if (_FiltStop > PMConfig.get<uint8_t>(FILTRATIONSTOPMAX))
+            _FiltStop = PMConfig.get<uint8_t>(FILTRATIONSTOPMAX);
+        
+        PMConfig.put<uint8_t>(FILTRATIONSTART, _FiltStart);
+        PMConfig.put<uint8_t>(FILTRATIONSTOP, _FiltStop);
 
-        Debug.print(DBG_INFO,"Filtration duration: %dh",storage.FiltrationDuration);
-        Debug.print(DBG_INFO,"Start: %dh - Stop: %dh",storage.FiltrationStart,storage.FiltrationStop);
+        Debug.print(DBG_INFO,"Filtration duration: %dh",PMData.FiltrDuration);
+        Debug.print(DBG_INFO,"Start: %dh - Stop: %dh",PMConfig.get<uint8_t>(FILTRATIONSTART),PMConfig.get<uint8_t>(FILTRATIONSTOP));
 
         PublishSettings();
 
@@ -191,119 +195,6 @@ void PoolMaster(void *pvParameters)
     if(second() == 30 && d_calc) d_calc = false;
     #endif
 
-
-/* ******************************************* 
-    START OF MAIN POOLMASTER AUTOMATION LOGIC
-   ******************************************* */
-
-   if (!FiltrationPump.IsRunning())  //Filtration Pump NOT Running
-  {
-    // Filtration pump is not running, check conditions to start
-    if ((storage.AutoMode && hour() >= storage.FiltrationStart && hour() < storage.FiltrationStop && !PSIError ) ||
-        (storage.WinterMode && storage.AirTemp < -2.0 && !PSIError)) {
-          FiltrationPump.Start();
-          Debug.print(DBG_INFO,"[LOGIC] Start Filtration Pump %d [%d-%d] - %d - %4.1f°C",storage.AutoMode,storage.FiltrationStart,storage.FiltrationStop,storage.WinterMode,storage.AirTemp);   
-        }
-  } else {  //Filtration Pump Running
-
-    // Check over and under pressure alarms
-    if ((((millis() - FiltrationPump.StartTime) > 180000) && (storage.PSIValue < storage.PSI_MedThreshold)) ||
-        (storage.PSIValue > storage.PSI_HighThreshold))
-    {
-      PSIError = true;
-      Debug.print(DBG_INFO,"[LOGIC] PSI Changed to Error");
-      mqttErrorPublish("{\"PSI Error\":1}");
-    }
-
-    // Check outside Winter Mode tasks
-    if (!storage.WinterMode) // NOT Winter Mode
-    {
-      //start cleaning robot for ROBOT_DURATION minutes, ROBOT_DELAY minutes after filtration start
-      if (storage.AutoMode && !RobotPump.IsRunning() &&
-          ((millis() - FiltrationPump.StartTime) / 1000 / 60) >= ROBOT_DELAY &&
-          !cleaning_done)
-      {
-          RobotPump.Start();
-          Debug.print(DBG_INFO,"[LOGIC] Robot Start %d mn after Filtration",ROBOT_DELAY);   
-      }
-      if(RobotPump.IsRunning() && storage.AutoMode && ((millis() - RobotPump.StartTime) / 1000 / 60) >= ROBOT_DURATION)
-      {
-          RobotPump.Stop();
-          cleaning_done = true;
-          Debug.print(DBG_INFO,"[LOGIC] Robot Stop after: %d mn",(int)(millis()-RobotPump.StartTime)/1000/60);
-      }
-
-      // pH Regulation tasks
-      if (storage.pHAutoMode)
-      {
-        if ((PhPID.GetMode()==MANUAL) && ((millis() - FiltrationPump.StartTime) / 1000 / 60 >= storage.DelayPIDs)) {
-          SetPhPID(true);
-          Debug.print(DBG_INFO,"[LOGIC] Activate pH PID (delay %dmn)",(millis() - FiltrationPump.StartTime) / 1000 / 60 );
-        }
-      }
-
-      // Orp Regulation tasks
-      if (storage.OrpAutoMode)
-      {
-        if ((OrpPID.GetMode()==MANUAL) && ((millis() - FiltrationPump.StartTime) / 1000 / 60 >= storage.DelayPIDs)) {
-          SetOrpPID(true);
-          Debug.print(DBG_INFO,"[LOGIC] Activate Orp PID (delay %dmn)",(millis() - FiltrationPump.StartTime) / 1000 / 60 );
-        }
-      }
-
-      // Electrolyse Regulation Tasks
-      if (storage.ElectrolyseMode) 
-      {
-        if (!SWGPump.IsRunning()) //SWG NOT Running
-        {
-          if(storage.ElectroRunMode) //SWG Run Mode is ADJUSTED
-          {  
-            if ((storage.OrpValue <= storage.Orp_SetPoint*0.9) && 
-                (storage.WaterTemp >= (double)storage.SecureElectro) && 
-                (millis() - FiltrationPump.StartTime)/ 1000 / 60 >= (unsigned long)storage.DelayElectro) 
-              {
-                SWGPump.Start();
-                Debug.print(DBG_INFO,"[LOGIC] Start SWG ADJ  %3.0f <= %3.0f - (delay %dmn)",storage.OrpValue,(storage.Orp_SetPoint*0.9),(millis() - FiltrationPump.StartTime)/ 1000 / 60);   
-              }
-            } else // SWG Run Mode is FIXED
-            {  
-              // Switch ON SWG with Pump (after Delay). It will switch OFF automatically when pump switches off (interlock)
-              if ((storage.WaterTemp >= (double)storage.SecureElectro) && 
-                  ((millis() - FiltrationPump.StartTime)/ 1000 / 60 >= (unsigned long)storage.DelayElectro))
-              {
-                SWGPump.Start();
-                Debug.print(DBG_INFO,"[LOGIC] Start SWG FIX  %3.0f <= %3.0f - (delay %dmn)",storage.OrpValue,(storage.Orp_SetPoint*0.9),(millis() - FiltrationPump.StartTime)/ 1000 / 60);   
-              }              
-            }
-        } else 
-        { //SWG Running
-          if(storage.ElectroRunMode) //SWG Run Mode is ADJUSTED
-          {  
-            if (storage.OrpValue > storage.Orp_SetPoint) 
-            {
-              SWGPump.Stop();
-              Debug.print(DBG_INFO,"[LOGIC] Stop SWG  %3.0f > %3.0f",storage.OrpValue,storage.Orp_SetPoint);   
-            }
-          } else // SWG Run Mode is FIXED (nothing to do. Will be switched off with pump interlock)
-          {  
-          }
-        }
-      }
-    } else {// Winter Mode (nothing to do)
-    }
-
-    // Conditions to stop filtration pump
-    // Do not stop in any case if temp is below +2°C (unless PSIError)
-    if (((storage.AutoMode && (hour() >= storage.FiltrationStop || hour() < storage.FiltrationStart))&&(storage.AirTemp > 2.0)) ||
-        (PSIError)) {
-        FiltrationPump.Stop();
-        Debug.print(DBG_INFO,"[LOGIC] Stop Filtration Pump %d [%d-%d]",storage.AutoMode,storage.FiltrationStart,storage.FiltrationStop);   
-        }
-  } // End of Filtration Pimp IS Running
-
-/* ******************************************* 
-    END OF MAIN POOLMASTER AUTOMATION LOGIC
-   ******************************************* */
 
     #ifdef SMTP
     //Send email if alarm(s) occured
@@ -332,18 +223,18 @@ void SetPhPID(bool Enable)
   {
     //Start PhPID
     PhPump.ClearErrors();
-    storage.PhPIDOutput = 0.0;
-    storage.PhPIDwindowStartTime = millis();
+    PMData.PhPIDOutput = 0.0;
+    PMData.PhPIDwStart = millis();
     PhPID.SetMode(AUTOMATIC);
-    storage.Ph_RegulationOnOff = 1;
+    PMData.Ph_RegOnOff = true; // Set the runtime data to true
   }
   else
   {
     //Stop PhPID
     PhPID.SetMode(MANUAL);
-    storage.Ph_RegulationOnOff = 0;
-    storage.PhPIDOutput = 0.0;
-    //PhPump.Stop(); // Do not stop PhPump here, it is controlled by the PID or directly by the user 
+    PMData.Ph_RegOnOff = false; // Set the runtime data to false
+    PMData.PhPIDOutput = 0.0; // Reset the PID output
+    //PhPump.Stop(); // Do not stop PhPump here, it is controlled by the PID or directly by the user
   }
 }
 
@@ -354,18 +245,17 @@ void SetOrpPID(bool Enable)
   {
     //Start OrpPID
     ChlPump.ClearErrors();
-    storage.OrpPIDOutput = 0.0;
-    storage.OrpPIDwindowStartTime = millis();
+    PMData.OrpPIDOutput = 0.0;
+    PMData.OrpPIDwStart = millis();
     OrpPID.SetMode(AUTOMATIC);
-    storage.Orp_RegulationOnOff = 1;
-
+    PMData.Orp_RegOnOff = true; // Set the runtime data to true
   }
   else
   {
     //Stop OrpPID
     OrpPID.SetMode(MANUAL);
-    storage.Orp_RegulationOnOff = 0;
-    storage.OrpPIDOutput = 0.0;
+    PMData.Orp_RegOnOff = false; // Set the runtime data to false
+    PMData.OrpPIDOutput = 0.0; // Reset the PID output
     //ChlPump.Stop(); // Do not stop ChlPump here, it is controlled by the PID or directly by the user
   }
 }
@@ -394,7 +284,7 @@ void Send_Email(){
     {
       if(!notif_sent[0])
       {
-        sprintf(texte,"Water pressure alert: %4.2fbar",storage.PSIValue);
+        sprintf(texte,"Water pressure alert: %4.2fbar",PMData.PSIValue);
         message.text.content = texte;
         if(SMTP_Connect()){   
           if(!MailClient.sendMail(&smtp, &message))

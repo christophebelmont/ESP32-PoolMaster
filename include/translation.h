@@ -4,6 +4,11 @@
 #define POOLMASTER_LOCALE_EN " English"
 #define POOLMASTER_LOCALE_FR " Français"
 
+// Translation management
+#define FL_(list_name) (__pstr__L_##list_name)
+#define MAKE_WORD_TRANSLATION(list_name, ...) static const char * const __pstr__L_##list_name[] = {__VA_ARGS__, nullptr};
+#define MAKE_TRANSLATION(list_name, ...)      static const char * const __pstr__L_##list_name[] = {__VA_ARGS__, nullptr};
+
 // IMPORTANT! translations are in the order: en, fr
 //
 // if there is no translation, it will default to en

@@ -2,39 +2,37 @@
  * EasyNextionEventManager.h - Easy library for managing events on Nextion Displays
  * Copyright (c) 2025 Christophe Belmont
  * All rights reserved under the library's licence
+ *
+ * Note that evenRef 50 is reserved for Page management.
+ * 
  */
 
 #ifndef EasyNextionEventManager_h
 #define EasyNextionEventManager_h
 
-// include this library's description file
-//#ifndef EasyNextionLibrary_h
-//#include "EasyNextionLibrary.h"
-//#endif
-
-
+#include "Arduino.h"
 #include <map>
 #include <functional>
 
 class EasyNextionEventManager {
 public:
-    using EventCallback = std::function<void(int)>;
+    using EventCallback = std::function<void(u_int8_t ,u_int8_t (&)[10])>;
 
-    void registerEvent(int eventRef, EventCallback callback) {
+    void registerEvent(u_int8_t eventRef, EventCallback callback) {
         eventHandlers[eventRef] = callback;
     }
 
-    void triggerEvent(int eventRef) {
+    void triggerEvent(u_int8_t eventRef, u_int8_t paramLength, u_int8_t (&eventData)[10]) {
         auto it = eventHandlers.find(eventRef);
         if (it != eventHandlers.end()) {
-            it->second(eventRef);
+            it->second(paramLength,eventData);
         } else {
-            //std::cerr << "Aucun gestionnaire trouvé pour l'événement: " << eventRef << std::endl;
+            // No handler found for the event
         }
     }
 
 private:
-    std::map<int, EventCallback> eventHandlers;
+    std::map<u_int8_t, EventCallback> eventHandlers;
 };
 
 #endif

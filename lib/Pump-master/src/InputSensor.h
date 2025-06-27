@@ -58,6 +58,7 @@ class InputSensor : public PIN {
     void SetShouldStopHandler(std::function<bool()> _handler) {};
     void SetOnStartHandler(std::function<void()> _handler) {};
     void SetOnStopHandler(std::function<void()> _handler) {};
+    void SetLoopHandler(std::function<void()> _handler) {};
 
   private:
     bool currentState = false; // Current state of the input sensor (avoid reading every time)

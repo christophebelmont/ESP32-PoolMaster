@@ -98,6 +98,8 @@
 // can be configured at runtime
 #define PUBLISHINTERVAL 30000
 
+#define CONFIG_NVS_NAME "MasterConfig" // NVS namespace for configuration storage
+
 // Default values if nothing better is recorded at runtime
 #define POOLTOPIC "Home/Pool/"
 #define MQTTID "PoolMaster"
@@ -115,12 +117,6 @@
 
 #define SWG_MODE_ADJUST 0   // Adjust SWG production time according to the pool ORP
 #define SWG_MODE_FIXED 1    // Fixed time for SWG production (in hours)
-
-// Default values Maxi and Mini Running time for the Pumps (mn)
-#define FILLING_PUMP_MIN_UPTIME 15   // Default swimming Pool Filling Valve minimum runtime
-#define FILLING_PUMP_MAX_UPTIME 50   // Default swimming Pool Filling Valve maximum runtime
-#define PH_PUMP_MAX_UPTIME 15   // Default swimming Pool Filling Valve maximum runtime
-#define CHL_PUMP_MAX_UPTIME 40   // Default swimming Pool Filling Valve maximum runtime
 
 //Display timeout before blanking
 //-------------------------------

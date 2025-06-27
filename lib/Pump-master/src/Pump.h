@@ -57,7 +57,7 @@ class Pump : public Relay {
 
     void loop();
 
-    bool Start(bool _resetUpTime = false); // Start the pump, reset UpTime if ResetUpTime is true
+    u_int8_t Start(bool _resetUpTime = false); // Start the pump, reset UpTime if ResetUpTime is true
     bool Stop(); 
 
     bool IsRunning();
@@ -74,6 +74,7 @@ class Pump : public Relay {
     void SetMaxUpTime(unsigned long);
     void SetMinUpTime(unsigned long);
     void ResetUpTime();
+    double GetUpTime() { return UpTime/1000; } // Return the current uptime in seconds
     void ClearErrors();
     bool MinUpTimeReached() { return (UpTime >= MinUpTime); } // Return true if minimum uptime reached
 
@@ -91,7 +92,7 @@ class Pump : public Relay {
     unsigned long MinUpTime     = DEFAULTMINUPTIME; // Minimum Uptime for a run (just used as storage for the moment, not used by the class)
     unsigned long CurrMaxUpTime; // Total uptime after error were cleared an another maxuptime was authorized
     bool          UpTimeError   = false;
-    unsigned long StartTime = 0;
+    unsigned long StartTime     = 0;
     unsigned long StopTime      = 0; 
     
   private:

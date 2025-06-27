@@ -93,7 +93,8 @@ class DeviceManager {
     void LoadPreferences(uint8_t _index = PREF_LOADSAVE_ALL_DEVICES) {
         preferences.begin(PREF_STORAGE_NAME, true);  // Démarrer la mémoire en read only mode
         uint8_t deviceCount = preferences.getUInt("device_count", 0);
-
+        Serial.println("=== Devices Parameters ===");
+        Serial.printf("=== %d devices\r\n ===", deviceCount);
         if(_index != PREF_LOADSAVE_ALL_DEVICES) {
             devices[_index]->LoadPreferences(preferences,_index); // Sauvegarde individuelle
             return;
@@ -103,6 +104,7 @@ class DeviceManager {
             }
         }
         preferences.end(); // Fermer la mémoire
+        Serial.println("=========================");
     }
 
     uint8_t GetSize() {

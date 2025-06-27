@@ -71,6 +71,7 @@ class Relay : public PIN {
     void SetShouldStopHandler(std::function<bool()> _handler) override { shouldStopHandler = _handler; }
     void SetOnStartHandler(std::function<void()> _handler) override { onStartHandler  = _handler; }
     void SetOnStopHandler(std::function<void()> _handler) override { onStopHandler  = _handler; }
+    void SetLoopHandler(std::function<void()> _handler) override { loopHandler  = _handler; }
 
   private:
     void Initialize(bool = MODE_LATCHING);

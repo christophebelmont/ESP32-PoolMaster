@@ -253,7 +253,7 @@ sensor:
   unique_id: "poolmaster_meas_phuptime"
   state_class: "measurement"
   unit_of_measurement: "s"
-  icon: "mdi:clock-end"
+  icon: "mdi:progress-clock"
   availability:
       - topic: "Home/Pool/Status"
         value_template: "{{ value_json['PoolMaster Online'] }}"
@@ -295,7 +295,7 @@ sensor:
   unique_id: "poolmaster_meas_chluptime"
   state_class: "measurement"
   unit_of_measurement: "s"
-  icon: "mdi:clock-end"
+  icon: "mdi:progress-clock"
   availability:
       - topic: "Home/Pool/Status"
         value_template: "{{ value_json['PoolMaster Online'] }}"
@@ -478,10 +478,31 @@ binary_sensor:
 - name: "Water Level Status"
   state_topic: "Home/Pool/Meas2"
   value_template: "{{ value_json.IO2 | int | bitwise_and(1) == 1 }}"
+  payload_on: "False"
+  payload_off: "True"
+  unique_id: "poolmaster_meas_wlevelerror"
+  icon: "mdi:wave-arrow-down"
+  device_class: "problem"
+  availability:
+      - topic: "Home/Pool/Status"
+        value_template: "{{ value_json['PoolMaster Online'] }}"
+        payload_available: "1"
+        payload_not_available : "0"
+  expire_after: 240
+  device:
+    name: "PoolMaster"
+    model: "PoolMaster ESP32"
+    manufacturer: "Gixy"
+    identifiers:
+      - 3091a77d-5096-45be-b2a6-e445d71bb192
+
+- name: "Fill Pump Uptime Status"
+  state_topic: "Home/Pool/Meas2"
+  value_template: "{{ value_json.IO3 | int | bitwise_and(32) == 32 }}"
   payload_on: "True"
   payload_off: "False"
-  unique_id: "poolmaster_meas_wlevelerror"
-  icon: "mdi:waves-arrow-up"
+  unique_id: "poolmaster_meas_filluptimeerror"
+  icon: "mdi:water-alert"
   device_class: "problem"
   availability:
       - topic: "Home/Pool/Status"
@@ -579,7 +600,7 @@ switch:
   state_on: "True"
   state_off: "False"
   unique_id: "poolmaster_meas_io3_swg"
-  icon: "fapro:electrolyse"
+  icon: "mdi:flash"
   optimistic: false
   availability:
       - topic: "Home/Pool/Status"
@@ -593,6 +614,31 @@ switch:
     identifiers:
       - 3091a77d-5096-45be-b2a6-e445d71bb192
 
+- name: "Pool Fill Pump"
+  command_topic: "Home/Pool/API"
+  qos: 1
+  payload_on: "{FillPump: 1}"
+  payload_off: "{FillPump: 0}"
+  state_topic: "Home/Pool/Meas2"
+  value_template: "{{ value_json.IO3 | int | bitwise_and(16) == 16 }}"
+  state_on: "True"
+  state_off: "False"
+  unique_id: "poolmaster_meas_io3_fill_pump"
+  icon: "mdi:waves-arrow-up"
+  optimistic: false
+  availability:
+      - topic: "Home/Pool/Status"
+        value_template: "{{ value_json['PoolMaster Online'] }}"
+        payload_available: "1"
+        payload_not_available : "0"
+  device:
+    name: "PoolMaster"
+    model: "PoolMaster ESP32"
+    manufacturer: "Gixy"
+    identifiers:
+      - 3091a77d-5096-45be-b2a6-e445d71bb192
+
+
 - name: "SWG Mode (Auto/Manual)"
   command_topic: "Home/Pool/API"
   qos: 1
@@ -603,7 +649,7 @@ switch:
   state_on: "True"
   state_off: "False"
   unique_id: "poolmaster_meas_io3_swgmode"
-  icon: "fapro:electrolyse"
+  icon: "mdi:flash-auto"
   entity_category: "config"
   optimistic: false
   availability:
@@ -752,6 +798,31 @@ switch:
   state_off: "False"
   unique_id: "poolmaster_meas_io2_orpautomode"
   icon: "mdi:chart-bell-curve-cumulative"
+  entity_category: "config"
+  optimistic: false
+  availability:
+      - topic: "Home/Pool/Status"
+        value_template: "{{ value_json['PoolMaster Online'] }}"
+        payload_available: "1"
+        payload_not_available : "0"
+  device:
+    name: "PoolMaster"
+    model: "PoolMaster ESP32"
+    manufacturer: "Goxy"
+    identifiers:
+      - 3091a77d-5096-45be-b2a6-e445d71bb192
+
+- name: "Buzzer"
+  command_topic: "Home/Pool/API"
+  qos: 1
+  payload_on: "{Buzzer: 1}"
+  payload_off: "{Buzzer: 0}"
+  state_topic: "Home/Pool/Meas2"
+  value_template: "{{ value_json.IO3 | int | bitwise_and(64) == 64 }}"
+  state_on: "True"
+  state_off: "False"
+  unique_id: "poolmaster_meas_io3_buzzer"
+  icon: "mdi:volume-high"
   entity_category: "config"
   optimistic: false
   availability:
@@ -1031,6 +1102,106 @@ number:
   unique_id: "poolmaster_set_max_filtration_hour"
   unit_of_measurement: "h"
   icon: "mdi:clock-plus"
+  entity_category: "config"
+  availability:
+      - topic: "Home/Pool/Status"
+        value_template: "{{ value_json['PoolMaster Online'] }}"
+        payload_available: "1"
+        payload_not_available : "0"
+  device:
+    name: "PoolMaster"
+    model: "PoolMaster ESP32"
+    manufacturer: "Gixy"
+    identifiers:
+      - 3091a77d-5096-45be-b2a6-e445d71bb192
+
+- name: "pH Pump Uptime Limit (mn)"
+  command_topic: "Home/Pool/API"
+  command_template: "{ PumpsMaxUp: {{value}} }"
+  min: 1
+  max: 60
+  mode: slider
+  step: 1
+  state_topic: "Home/Pool/Set1"
+  value_template: "{{ value_json.pHUTL | int }}"
+  unique_id: "poolmaster_set_max_ph_pump_uptime"
+  unit_of_measurement: "mn"
+  icon: "mdi:clock-end"
+  entity_category: "config"
+  availability:
+      - topic: "Home/Pool/Status"
+        value_template: "{{ value_json['PoolMaster Online'] }}"
+        payload_available: "1"
+        payload_not_available : "0"
+  device:
+    name: "PoolMaster"
+    model: "PoolMaster ESP32"
+    manufacturer: "Gixy"
+    identifiers:
+      - 3091a77d-5096-45be-b2a6-e445d71bb192
+
+- name: "Chlorine Pump Uptime Limit (mn)"
+  command_topic: "Home/Pool/API"
+  command_template: "{ PumpsMaxUp: {{value}} }"
+  min: 1
+  max: 60
+  mode: slider
+  step: 1
+  state_topic: "Home/Pool/Set1"
+  value_template: "{{ value_json.ChlUTL | int }}"
+  unique_id: "poolmaster_set_max_chl_pump_uptime"
+  unit_of_measurement: "mn"
+  icon: "mdi:clock-plus"
+  entity_category: "config"
+  availability:
+      - topic: "Home/Pool/Status"
+        value_template: "{{ value_json['PoolMaster Online'] }}"
+        payload_available: "1"
+        payload_not_available : "0"
+  device:
+    name: "PoolMaster"
+    model: "PoolMaster ESP32"
+    manufacturer: "Gixy"
+    identifiers:
+      - 3091a77d-5096-45be-b2a6-e445d71bb192
+
+- name: "Pool Fill Pump Max Uptime (mn)"
+  command_topic: "Home/Pool/API"
+  command_template: "{ FillMaxUpTime: {{value}} }"
+  min: 1
+  max: 60
+  mode: slider
+  step: 1
+  state_topic: "Home/Pool/Set1"
+  value_template: "{{ value_json.FMaUT | int }}"
+  unique_id: "poolmaster_set_max_fill_pump_uptime"
+  unit_of_measurement: "mn"
+  icon: "mdi:clock-plus"
+  entity_category: "config"
+  availability:
+      - topic: "Home/Pool/Status"
+        value_template: "{{ value_json['PoolMaster Online'] }}"
+        payload_available: "1"
+        payload_not_available : "0"
+  device:
+    name: "PoolMaster"
+    model: "PoolMaster ESP32"
+    manufacturer: "Gixy"
+    identifiers:
+      - 3091a77d-5096-45be-b2a6-e445d71bb192
+
+- name: "Pool Fill Pump Min Uptime (mn)"
+  command_topic: "Home/Pool/API"
+  command_template: "{ FillMinUpTime: {{value}} }"
+  min: 0
+  max: 60
+  mode: slider
+  step: 1
+  state_topic: "Home/Pool/Set1"
+  value_template: "{{ value_json.FMiUT | int }}"
+  unique_id: "poolmaster_set_min_fill_pump_uptime"
+  unit_of_measurement: "mn"
+  icon: "mdi:clock-minus"
   entity_category: "config"
   availability:
       - topic: "Home/Pool/Status"
