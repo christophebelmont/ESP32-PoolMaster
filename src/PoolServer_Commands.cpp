@@ -2,7 +2,7 @@
 #include "PoolServer_Commands.h"
 
 // Map key -> handler function
-std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> server_handlers = {
+const std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> server_handlers = {
     {"Buzzer",          p_Buzzer         },
     {"Lang_Locale",     p_Lang           },
     {"TempExt",         p_TempExt        },
@@ -19,6 +19,7 @@ std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> s
     {"pHTank",          p_pHTank         },
     {"ChlTank",         p_ChlTank        },
     {"WTempLow",        p_WTempLow       },
+    {"PumpMaxUp",       p_PumpMaxUp      },
     {"PumpsMaxUp",      p_PumpsMaxUp     },
     {"FillMinUpTime",   p_FillMinUpTime  },
     {"FillMaxUpTime",   p_FillMaxUpTime  },
@@ -48,6 +49,7 @@ std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> s
     {"PhAutoMode",      p_PhAutoMode     },
     {"OrpPID",          p_OrpPID         },
     {"OrpAutoMode",     p_OrpAutoMode    },
+    {"FillAutoMode",    p_FillAutoMode   },
     {"Relay",           p_Relay          },
     {"Reboot",          p_Reboot         },
     {"Clear",           p_Clear          },
@@ -65,17 +67,15 @@ std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> s
 
 /* All JSON commands functions definition */
 void p_Buzzer(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.BuzzerOn = (bool)_jsonsdoc[F("Buzzer")];
-    saveParam("BuzzerOn",storage.BuzzerOn);
+    PMConfig.put<bool>(BUZZERON, (bool)_jsonsdoc[F("Buzzer")]);
 }
 
 void p_Lang(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.Lang_Locale = (uint8_t)_jsonsdoc[F("Lang_Locale")];
-    saveParam("Lang_Locale",storage.Lang_Locale);
+    PMConfig.put<uint8_t>(LANG_LOCALE, (uint8_t)_jsonsdoc[F("Lang_Locale")]);
 }
 
 void p_TempExt(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.AirTemp = _jsonsdoc[F("TempExt")].as<float>();
+    PMData.AirTemp = _jsonsdoc[F("TempExt")].as<float>();
 }
 
 //{"pHCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
@@ -86,17 +86,21 @@ void p_pHCalib(StaticJsonDocument<250>  &_jsonsdoc) {
     for (int i = 0; i < NbPoints; i += 2)
       Debug.print(DBG_DEBUG,"%10.2f - %10.2f",CalibPoints[i],CalibPoints[i + 1]);
 
+    double _pHCalibCoeffs0, _pHCalibCoeffs1;    // Temporary variables for linear regression coefficients
+    _pHCalibCoeffs0 = PMConfig.get<double>(PHCALIBCOEFFS0);
+    _pHCalibCoeffs1 = PMConfig.get<double>(PHCALIBCOEFFS1);
+
     if (NbPoints == 2) //Only one pair of points. Perform a simple offset calibration
     {
       Debug.print(DBG_DEBUG,"2 points. Performing a simple offset calibration");
 
       //compute offset correction
-      storage.pHCalibCoeffs1 += CalibPoints[1] - CalibPoints[0];
+      _pHCalibCoeffs1 += CalibPoints[1] - CalibPoints[0];
 
       //Set slope back to default value
-      storage.pHCalibCoeffs0 = 3.76;
+      _pHCalibCoeffs0 = 3.76;
 
-      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",storage.pHCalibCoeffs0,storage.pHCalibCoeffs1);
+      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",_pHCalibCoeffs0,_pHCalibCoeffs1);
     }
     else if ((NbPoints > 3) && (NbPoints % 2 == 0)) //we have at least 4 points as well as an even number of points. Perform a linear regression calibration
     {
@@ -109,18 +113,20 @@ void p_pHCalib(StaticJsonDocument<250>  &_jsonsdoc) {
       //storage.PhValue = (storage.pHCalibCoeffs0 * ph_sensor_value) + storage.pHCalibCoeffs1;
       for (int i = 0; i < NbPoints; i += 2)
       {
-        xCalibPoints[i / 2] = (CalibPoints[i] - storage.pHCalibCoeffs1) / storage.pHCalibCoeffs0;
+        xCalibPoints[i / 2] = (CalibPoints[i] - _pHCalibCoeffs1) / _pHCalibCoeffs0;
         yCalibPoints[i / 2] = CalibPoints[i + 1];
       }
 
       //Compute linear regression coefficients
-      simpLinReg(xCalibPoints, yCalibPoints, storage.pHCalibCoeffs0, storage.pHCalibCoeffs1, NbPoints / 2);
+      simpLinReg(xCalibPoints, yCalibPoints, _pHCalibCoeffs0, _pHCalibCoeffs1, NbPoints / 2);
 
-      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",storage.pHCalibCoeffs0 ,storage.pHCalibCoeffs1);
+      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",_pHCalibCoeffs0 ,_pHCalibCoeffs1);
     }
+
+    PMConfig.put<double>(PHCALIBCOEFFS0, _pHCalibCoeffs0);
+    PMConfig.put<double>(PHCALIBCOEFFS1, _pHCalibCoeffs1);
+
     //Store the new coefficients in eeprom
-    saveParam("pHCalibCoeffs0",storage.pHCalibCoeffs0);
-    saveParam("pHCalibCoeffs1",storage.pHCalibCoeffs1);          
     PublishSettings();
 }
 
@@ -130,18 +136,23 @@ void p_OrpCalib(StaticJsonDocument<250>  &_jsonsdoc) {
     int NbPoints = (int)copyArray(_jsonsdoc[F("OrpCalib")].as<JsonArray>(),CalibPoints);
     Debug.print(DBG_DEBUG,"OrpCalib command - %d points received",NbPoints);
     for (int i = 0; i < NbPoints; i += 2)
-      Debug.print(DBG_DEBUG,"%10.2f - %10.2f",CalibPoints[i],CalibPoints[i + 1]);        
+      Debug.print(DBG_DEBUG,"%10.2f - %10.2f",CalibPoints[i],CalibPoints[i + 1]);
+
+    double _OrpCalibCoeffs0, _OrpCalibCoeffs1;    // Temporary variables for linear regression coefficients
+    _OrpCalibCoeffs0 = PMConfig.get<double>(ORPCALIBCOEFFS0);
+    _OrpCalibCoeffs1 = PMConfig.get<double>(ORPCALIBCOEFFS1);
+
     if (NbPoints == 2) //Only one pair of points. Perform a simple offset calibration
     {
       Debug.print(DBG_DEBUG,"2 points. Performing a simple offset calibration");
 
       //compute offset correction
-      storage.OrpCalibCoeffs1 += CalibPoints[1] - CalibPoints[0];
+      _OrpCalibCoeffs1 += CalibPoints[1] - CalibPoints[0];
 
       //Set slope back to default value
-      storage.OrpCalibCoeffs0 = -1000;
+      _OrpCalibCoeffs0 = -1000.0; 
 
-      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",storage.OrpCalibCoeffs0,storage.OrpCalibCoeffs1);
+      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",_OrpCalibCoeffs0,_OrpCalibCoeffs1);
     }
     else if ((NbPoints > 3) && (NbPoints % 2 == 0)) //we have at least 4 points as well as an even number of points. Perform a linear regression calibration
     {
@@ -154,18 +165,19 @@ void p_OrpCalib(StaticJsonDocument<250>  &_jsonsdoc) {
       //storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;
       for (int i = 0; i < NbPoints; i += 2)
       {
-        xCalibPoints[i / 2] = (CalibPoints[i] - storage.OrpCalibCoeffs1) / storage.OrpCalibCoeffs0;
+        xCalibPoints[i / 2] = (CalibPoints[i] - _OrpCalibCoeffs1) / _OrpCalibCoeffs0;
         yCalibPoints[i / 2] = CalibPoints[i + 1];
       }
 
       //Compute linear regression coefficients
-      simpLinReg(xCalibPoints, yCalibPoints, storage.OrpCalibCoeffs0, storage.OrpCalibCoeffs1, NbPoints / 2);
+      simpLinReg(xCalibPoints, yCalibPoints, _OrpCalibCoeffs0, _OrpCalibCoeffs1, NbPoints / 2);
 
-      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",storage.OrpCalibCoeffs0,storage.OrpCalibCoeffs1);
+      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",_OrpCalibCoeffs0,_OrpCalibCoeffs1);
     }
-    //Store the new coefficients in eeprom
-    saveParam("OrpCalibCoeffs0",storage.OrpCalibCoeffs0);
-    saveParam("OrpCalibCoeffs1",storage.OrpCalibCoeffs1);          
+
+    PMConfig.put<double>(ORPCALIBCOEFFS0, _OrpCalibCoeffs0);
+    PMConfig.put<double>(ORPCALIBCOEFFS1, _OrpCalibCoeffs1);
+
     PublishSettings();
 }
 
@@ -176,6 +188,10 @@ void p_PSICalib(StaticJsonDocument<250>  &_jsonsdoc) {
     Debug.print(DBG_DEBUG,"PSICalib command - %d points received",NbPoints);
     for (int i = 0; i < NbPoints; i += 2)
       Debug.print(DBG_DEBUG,"%10.2f, %10.2f",CalibPoints[i],CalibPoints[i + 1]);
+
+    double _PSICalibCoeffs0, _PSICalibCoeffs1;    // Temporary variables for linear regression coefficients
+    _PSICalibCoeffs0 = PMConfig.get<double>(PSICALIBCOEFFS0);
+    _PSICalibCoeffs1 = PMConfig.get<double>(PSICALIBCOEFFS1);
 
     if ((NbPoints > 3) && (NbPoints % 2 == 0)) //we have at least 4 points as well as an even number of points. Perform a linear regression calibration
     {
@@ -189,29 +205,30 @@ void p_PSICalib(StaticJsonDocument<250>  &_jsonsdoc) {
       //storage.PSIValue = (storage.PSICalibCoeffs0 * psi_sensor_value) + storage.PSICalibCoeffs1;
       for (int i = 0; i < NbPoints; i += 2)
       {
-        xCalibPoints[i / 2] = (CalibPoints[i] - storage.PSICalibCoeffs1) / storage.PSICalibCoeffs0;
+        xCalibPoints[i / 2] = (CalibPoints[i] - _PSICalibCoeffs1) / _PSICalibCoeffs0;
         yCalibPoints[i / 2] = CalibPoints[i + 1];
       }
 
       //Compute linear regression coefficients
-      simpLinReg(xCalibPoints, yCalibPoints, storage.PSICalibCoeffs0, storage.PSICalibCoeffs1, NbPoints / 2);
+      simpLinReg(xCalibPoints, yCalibPoints, _PSICalibCoeffs0, _PSICalibCoeffs1, NbPoints / 2);
 
-      //Store the new coefficients in eeprom
-      saveParam("PSICalibCoeffs0",storage.PSICalibCoeffs0);
-      saveParam("PSICalibCoeffs1",storage.PSICalibCoeffs1);          
+    PMConfig.put<double>(PSICALIBCOEFFS0, _PSICalibCoeffs0);
+    PMConfig.put<double>(PSICALIBCOEFFS1, _PSICalibCoeffs1);
+
       PublishSettings();
-      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",storage.PSICalibCoeffs0,storage.PSICalibCoeffs1);
+      Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",_PSICalibCoeffs0,_PSICalibCoeffs1);
     }
 }
 
 void p_Mode(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.AutoMode = (bool)_jsonsdoc[F("Mode")];
-    if (!storage.AutoMode) // Stop PIDs if manual mode
+    PMConfig.put<bool>(AUTOMODE, (bool)_jsonsdoc[F("Mode")]);
+    //storage.AutoMode = (bool)_jsonsdoc[F("Mode")];
+    if (!PMConfig.get<bool>(AUTOMODE)) // Stop PIDs if manual mode
     {
       SetPhPID(false);
       SetOrpPID(false);
     }
-    saveParam("AutoMode",storage.AutoMode);
+    //saveParam("AutoMode",storage.AutoMode);
     PublishSettings();
 }
 void p_Electrolyse(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -220,7 +237,7 @@ void p_Electrolyse(StaticJsonDocument<250>  &_jsonsdoc) {
       // start electrolyse if not below minimum temperature
       // do not take care of minimum filtering time as it 
       // was forced on.
-      if (storage.WaterTemp >= (double)storage.SecureElectro)
+      if (PMData.WaterTemp >= (double)PMConfig.get<double>(SECUREELECTRO))
         if (!SWGPump.Start())
           Debug.print(DBG_WARNING,"Problem starting SWG");   
     } else {
@@ -228,187 +245,169 @@ void p_Electrolyse(StaticJsonDocument<250>  &_jsonsdoc) {
         Debug.print(DBG_WARNING,"Problem stopping SWG");   
     }
     // Direct action on Electrolyse will exit the automatic Electro Regulation Mode
-    storage.ElectrolyseMode = 0;
-    saveParam("ElectrolyseMode",storage.ElectrolyseMode);
+    PMConfig.put<bool>(ELECTROLYSEMODE, false);
     PublishSettings();
 }
 void p_ElectrolyseMode(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.ElectrolyseMode = (int)_jsonsdoc[F("ElectrolyseMode")];
-    saveParam("ElectrolyseMode",storage.ElectrolyseMode);
+    PMConfig.put<bool>(ELECTROLYSEMODE, (bool)_jsonsdoc[F("ElectrolyseMode")]);
     PublishSettings();
 }
 void p_Winter(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.WinterMode = (bool)_jsonsdoc[F("Winter")];
-    saveParam("WinterMode",storage.WinterMode);
+    PMConfig.put<bool>(WINTERMODE, (bool)_jsonsdoc[F("Winter")]);
     PublishSettings();
 }
 void p_PhSetPoint(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.Ph_SetPoint = _jsonsdoc[F("PhSetPoint")].as<double>();
-    saveParam("Ph_SetPoint",storage.Ph_SetPoint);
+    PMConfig.put<double>(PH_SETPOINT, _jsonsdoc[F("PhSetPoint")].as<double>());
+    PMData.Ph_SetPoint = PMConfig.get<double>(PH_SETPOINT);
     PublishSettings();
 }
 void p_OrpSetPoint(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.Orp_SetPoint = _jsonsdoc[F("OrpSetPoint")].as<double>();
-    saveParam("Orp_SetPoint",storage.Orp_SetPoint);
+    PMConfig.put<double>(ORP_SETPOINT, _jsonsdoc[F("OrpSetPoint")].as<double>());
+    PMData.Orp_SetPoint = PMConfig.get<double>(ORP_SETPOINT);
     PublishSettings();
 }
 void p_WSetPoint(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.WaterTemp_SetPoint = (double)_jsonsdoc[F("WSetPoint")];
-    saveParam("WaterTempSet",storage.WaterTemp_SetPoint);
+    PMConfig.put<double>(WATERTEMP_SETPOINT, _jsonsdoc[F("WSetPoint")].as<double>());
     PublishSettings();
 }
 //"pHTank" command which is called when the pH tank is changed or refilled
 //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
+
 void p_pHTank(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_PH].tank_vol = (double)_jsonsdoc[F("pHTank")][0];
-    storage.PumpsConfig[PUMP_PH].tank_fill = (double)_jsonsdoc[F("pHTank")][1];
-    PhPump.SetTankVolume(storage.PumpsConfig[PUMP_PH].tank_vol);
-    PhPump.SetTankFill(storage.PumpsConfig[PUMP_PH].tank_fill);
-    savePumpsConf();
+    PhPump.SetTankVolume((double)_jsonsdoc[F("pHTank")][0]);
+    PhPump.SetTankFill((double)_jsonsdoc[F("pHTank")][1]);
+    PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
     PublishSettings();
 }
 void p_ChlTank(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_CHL].tank_vol = (double)_jsonsdoc[F("ChlTank")][0];
-    storage.PumpsConfig[PUMP_CHL].tank_fill = (double)_jsonsdoc[F("ChlTank")][1];
-    ChlPump.SetTankVolume(storage.PumpsConfig[PUMP_CHL].tank_vol);
-    ChlPump.SetTankFill(storage.PumpsConfig[PUMP_CHL].tank_fill);
-    savePumpsConf();
+    ChlPump.SetTankVolume((double)_jsonsdoc[F("ChlTank")][0]);
+    ChlPump.SetTankFill((double)_jsonsdoc[F("ChlTank")][1]);
+    PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
     PublishSettings();
 }
 void p_WTempLow(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.WaterTempLowThreshold = (double)_jsonsdoc[F("WTempLow")];
-    saveParam("WaterTempLowThreshold",storage.WaterTempLowThreshold);
+    PMConfig.put<double>(WATERTEMPLOWTHRESHOLD, (double)_jsonsdoc[F("WTempLow")]);
     PublishSettings();
 }
 void p_PumpsMaxUp(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_PH].pump_max_uptime = (unsigned int)_jsonsdoc[F("PumpsMaxUp")];
-    storage.PumpsConfig[PUMP_CHL].pump_max_uptime = (unsigned int)_jsonsdoc[F("PumpsMaxUp")];
-    savePumpsConf();
-
-    // Apply changes
-    PhPump.SetMaxUpTime(storage.PumpsConfig[PUMP_PH].pump_max_uptime * 1000);
-    ChlPump.SetMaxUpTime(storage.PumpsConfig[PUMP_CHL].pump_max_uptime * 1000);
+    PhPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpsMaxUp")]*60*1000);
+    ChlPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpsMaxUp")]*60*1000);
+    PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
+    PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
+    PublishSettings();
+}
+void p_PumpMaxUp(StaticJsonDocument<250>  &_jsonsdoc) {
+    u_int8_t device_index = (u_int8_t)_jsonsdoc[F("PumpMaxUp")][0];
+    PoolDeviceManager.GetDevice(device_index)->SetMaxUpTime((unsigned int)_jsonsdoc[F("PumpMaxUp")][1]*60*1000);
+    PoolDeviceManager.SavePreferences(device_index);
     PublishSettings();
 }
 void p_FillMinUpTime(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_FILL].pump_min_uptime = (unsigned int)_jsonsdoc[F("FillMinUpTime")] * 60;
-    // MinUptime is not a member of pump class, this is used in main logic to prevent pump from stopping too fast
-    savePumpsConf();
+    FillingPump.SetMinUpTime((unsigned int)_jsonsdoc[F("FillMinUpTime")]*60*1000);
+    PoolDeviceManager.SavePreferences(DEVICE_FILLING_PUMP);
     PublishSettings();
 }
 void p_FillMaxUpTime(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_FILL].pump_max_uptime = (unsigned int)_jsonsdoc[F("FillMaxUpTime")] * 60; 
-    FillingPump.SetMaxUpTime(storage.PumpsConfig[PUMP_FILL].pump_max_uptime * 1000);
-    savePumpsConf();
+    FillingPump.SetMaxUpTime((unsigned int)_jsonsdoc[F("FillMaxUpTime")]*60*1000);
+    PoolDeviceManager.SavePreferences(DEVICE_FILLING_PUMP);
     PublishSettings();
 }
 void p_OrpPIDParams(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.Orp_Kp = (double)_jsonsdoc[F("OrpPIDParams")][0];
-    storage.Orp_Ki = (double)_jsonsdoc[F("OrpPIDParams")][1];
-    storage.Orp_Kd = (double)_jsonsdoc[F("OrpPIDParams")][2];
-    saveParam("Orp_Kp",storage.Orp_Kp);
-    saveParam("Orp_Ki",storage.Orp_Ki);
-    saveParam("Orp_Kd",storage.Orp_Kd);
-    OrpPID.SetTunings(storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd);
+    PMConfig.put<double>(ORP_KP, (double)_jsonsdoc[F("OrpPIDParams")][0]);
+    PMConfig.put<double>(ORP_KI, (double)_jsonsdoc[F("OrpPIDParams")][1]);
+    PMConfig.put<double>(ORP_KD, (double)_jsonsdoc[F("OrpPIDParams")][2]);
+    OrpPID.SetTunings(PMConfig.get<double>(ORP_KP), PMConfig.get<double>(ORP_KI), PMConfig.get<double>(ORP_KD));
     PublishSettings();
 }
 void p_PhPIDParams(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.Ph_Kp = (double)_jsonsdoc[F("PhPIDParams")][0];
-    storage.Ph_Ki = (double)_jsonsdoc[F("PhPIDParams")][1];
-    storage.Ph_Kd = (double)_jsonsdoc[F("PhPIDParams")][2];
-    saveParam("Ph_Kp",storage.Ph_Kp);
-    saveParam("Ph_Ki",storage.Ph_Ki);
-    saveParam("Ph_Kd",storage.Ph_Kd);
-    PhPID.SetTunings(storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd);
+    PMConfig.put<double>(PH_KP, (double)_jsonsdoc[F("PhPIDParams")][0]);
+    PMConfig.put<double>(PH_KI, (double)_jsonsdoc[F("PhPIDParams")][1]);
+    PMConfig.put<double>(PH_KD, (double)_jsonsdoc[F("PhPIDParams")][2]);
+    PhPID.SetTunings(PMConfig.get<double>(PH_KP), PMConfig.get<double>(PH_KI), PMConfig.get<double>(PH_KD));
     PublishSettings();
 }
 void p_OrpPIDWSize(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.OrpPIDWindowSize = (unsigned long)_jsonsdoc[F("OrpPIDWSize")]*60*1000;
-    saveParam("OrpPIDWSize",storage.OrpPIDWindowSize);
-    OrpPID.SetSampleTime((int)storage.OrpPIDWindowSize);
-    OrpPID.SetOutputLimits(0, storage.OrpPIDWindowSize);  //Whatever happens, don't allow continuous injection of Chl for more than a PID Window
+    PMConfig.put<unsigned long>(ORPPIDWINDOWSIZE, (unsigned long)_jsonsdoc[F("OrpPIDWSize")]*60*1000); //in millisecs
+    OrpPID.SetSampleTime((int)PMConfig.get<unsigned long>(ORPPIDWINDOWSIZE));
+    OrpPID.SetOutputLimits(0, PMConfig.get<unsigned long>(ORPPIDWINDOWSIZE));  //Whatever happens, don't allow continuous injection of Chl for more than a PID Window
     PublishSettings();
 }
 void p_PhPIDWSize(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PhPIDWindowSize = (unsigned long)_jsonsdoc[F("PhPIDWSize")]*60*1000;
-    saveParam("PhPIDWSize",storage.PhPIDWindowSize);
-    PhPID.SetSampleTime((int)storage.PhPIDWindowSize);
-    PhPID.SetOutputLimits(0, storage.PhPIDWindowSize);    //Whatever happens, don't allow continuous injection of Acid for more than a PID Window
+    PMConfig.put<unsigned long>(PHPIDWINDOWSIZE, (unsigned long)_jsonsdoc[F("PhPIDWSize")]*60*1000); //in millisecs
+    PhPID.SetSampleTime((int)PMConfig.get<unsigned long>(PHPIDWINDOWSIZE));
+    PhPID.SetOutputLimits(0, PMConfig.get<unsigned long>(PHPIDWINDOWSIZE));    //Whatever happens, don't allow continuous injection of Acid for more than a PID Window
     PublishSettings();
 }
 void p_Date(StaticJsonDocument<250>  &_jsonsdoc) {
     setTime((uint8_t)_jsonsdoc[F("Date")][4], (uint8_t)_jsonsdoc[F("Date")][5], (uint8_t)_jsonsdoc[F("Date")][6], (uint8_t)_jsonsdoc[F("Date")][0], (uint8_t)_jsonsdoc[F("Date")][2], (uint8_t)_jsonsdoc[F("Date")][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
 }
 void p_FiltT0(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.FiltrationStartMin = (unsigned int)_jsonsdoc[F("FiltT0")];
-    saveParam("FiltrStartMin",storage.FiltrationStartMin);
+    PMConfig.put<uint8_t>(FILTRATIONSTARTMIN, (uint8_t)_jsonsdoc[F("FiltT0")]);
     PublishSettings();
 }
 void p_FiltT1(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.FiltrationStopMax = (unsigned int)_jsonsdoc[F("FiltT1")];
-    saveParam("FiltrStopMax",storage.FiltrationStopMax);
+    PMConfig.put<uint8_t>(FILTRATIONSTOPMAX, (uint8_t)_jsonsdoc[F("FiltT1")]);
     PublishSettings();
 }
 void p_PubPeriod(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PublishPeriod = (unsigned long)_jsonsdoc[F("PubPeriod")] * 1000; //in secs
-    saveParam("PublishPeriod",storage.PublishPeriod);
+    PMConfig.put<unsigned long>(PUBLISHPERIOD, (unsigned long)_jsonsdoc[F("PubPeriod")] * 1000); //in millisecs
     PublishSettings();
 }
 void p_DelayPID(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.DelayPIDs = (unsigned int)_jsonsdoc[F("DelayPID")];
-    saveParam("DelayPIDs",storage.DelayPIDs);
+    PMConfig.put<uint8_t>(DELAYPIDS, (uint8_t)_jsonsdoc[F("DelayPID")]);
     PublishSettings();
 }
 void p_PSIHigh(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PSI_HighThreshold = (double)_jsonsdoc[F("PSIHigh")];
-    saveParam("PSI_High",storage.PSI_HighThreshold);
+    PMConfig.put<double>(PSI_HIGHTHRESHOLD, (double)_jsonsdoc[F("PSIHigh")]);
     PublishSettings();
 }
 void p_PSILow(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PSI_MedThreshold = (double)_jsonsdoc[F("PSILow")];
-    saveParam("PSI_Med",storage.PSI_MedThreshold);
+    PMConfig.put<double>(PSI_MEDTHRESHOLD, (double)_jsonsdoc[F("PSILow")]);
     PublishSettings();
 }
 void p_pHPumpFR(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_PH].pump_flow_rate = (double)_jsonsdoc[F("pHPumpFR")];
-    savePumpsConf();
-    PhPump.SetFlowRate(storage.PumpsConfig[PUMP_PH].pump_flow_rate * 1000);
+    PhPump.SetFlowRate((double)_jsonsdoc[F("pHPumpFR")] * 1000);
+    PoolDeviceManager.SavePreferences(DEVICE_PH_PUMP);
     PublishSettings();
 }
 void p_ChlPumpFR(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PumpsConfig[PUMP_CHL].pump_flow_rate = (double)_jsonsdoc[F("ChlPumpFR")];
-    savePumpsConf();
-    PhPump.SetFlowRate(storage.PumpsConfig[PUMP_CHL].pump_flow_rate * 1000);
+    PhPump.SetFlowRate((double)_jsonsdoc[F("ChlPumpFR")] * 1000);
+    PoolDeviceManager.SavePreferences(DEVICE_CHL_PUMP);
     PublishSettings();
 }
 void p_RstpHCal(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.pHCalibCoeffs0 = (double)-2.50133333;
-    storage.pHCalibCoeffs1 = (double)6.9;
-    saveParam("pHCalibCoeffs0",storage.pHCalibCoeffs0);
-    saveParam("pHCalibCoeffs1",storage.pHCalibCoeffs1);
+    PMConfig.put<double>(PHCALIBCOEFFS0, (double)-2.50133333);
+    PMConfig.put<double>(PHCALIBCOEFFS1, (double)6.9);
     PublishSettings();
 }
 void p_RstOrpCal(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.OrpCalibCoeffs0 = (double)431.03;
-    storage.OrpCalibCoeffs1 = (double)0.0;
-    saveParam("OrpCalibCoeffs0",storage.OrpCalibCoeffs0);
-    saveParam("OrpCalibCoeffs1",storage.OrpCalibCoeffs1);          
+    PMConfig.put<double>(ORPCALIBCOEFFS0, (double)431.03);
+    PMConfig.put<double>(ORPCALIBCOEFFS1, (double)0.0);
     PublishSettings();
 }
 void p_RstPSICal(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.PSICalibCoeffs0 = (double)0.377923399;
-    storage.PSICalibCoeffs1 = (double)-0.17634473;
-    saveParam("PSICalibCoeffs0",storage.PSICalibCoeffs0);
-    saveParam("PSICalibCoeffs1",storage.PSICalibCoeffs1);          
+    PMConfig.put<double>(PSICALIBCOEFFS0, (double)0.377923399);
+    PMConfig.put<double>(PSICALIBCOEFFS1, (double)-0.17634473);
     PublishSettings();
 }
 void p_Settings(StaticJsonDocument<250>  &_jsonsdoc) {
     PublishSettings();
 }
 void p_FiltPump(StaticJsonDocument<250>  &_jsonsdoc) {
+    u_int8_t ErrorCode = 0;
     if ((bool)_jsonsdoc[F("FiltPump")])
     {
-        FiltrationPump.Start();   //start filtration pump
+        ErrorCode = FiltrationPump.Start();   //start filtration pump
+
+        // Manage Starting problems to show in the logs
+        if(ErrorCode & (1<<0) != 0) //if error code bit 0 is set, it means the pump is already running
+            Debug.print(DBG_WARNING,"%s UpTime prevented start. No action taken",FiltrationPump.GetName());
+        else if(ErrorCode & (1<<1) != 0) //if error code bit 1 is set, it means the pump has a problem starting
+            Debug.print(DBG_WARNING,"%s TankLevel prevented start. No action taken",FiltrationPump.GetName());
+        else if(ErrorCode & (1<<2) != 0) //if error code bit 2 is set, it means the pump is not running
+            Debug.print(DBG_WARNING,"%s Interlock prevented start. No action taken",FiltrationPump.GetName());
+        else if(ErrorCode & (1<<3) != 0) //if error code bit 3 is set, it means the pump is running but has a problem
+            Debug.print(DBG_WARNING,"%s Underlying Relay prevented start. No action taken",FiltrationPump.GetName());
     }
     else
     {
@@ -418,8 +417,8 @@ void p_FiltPump(StaticJsonDocument<250>  &_jsonsdoc) {
         SetPhPID(false);
         SetOrpPID(false);
     }
-    storage.AutoMode = 0;   // Manually changing pump operation disables the automatic mode
-    saveParam("AutoMode",storage.AutoMode);
+
+    PMConfig.put<bool>(AUTOMODE, false);   // Manually changing pump operation disables the automatic mode
     PublishSettings();
 }
 void p_RobotPump(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -438,9 +437,8 @@ void p_PhPump(StaticJsonDocument<250>  &_jsonsdoc) {
     else
         PhPump.Stop();       //stop Acid pump
     
-    storage.pHAutoMode = 0;
-    saveParam("pHAutoMode",storage.pHAutoMode);
-    if (storage.pHAutoMode == 0) SetPhPID(false);
+    PMConfig.put<bool>(PHAUTOMODE, false);   // Manually changing pump operation disables the automatic mode
+    if (PMConfig.get<bool>(PHAUTOMODE) == 0) SetPhPID(false);
 
     PublishSettings();
 }
@@ -449,16 +447,18 @@ void p_FillPump(StaticJsonDocument<250>  &_jsonsdoc) {
         FillingPump.Start();      //start swimming pool filling pump
     else
         FillingPump.Stop();       //stop swimming pool filling pump
-}
+
+    PMConfig.put<bool>(FILLAUTOMODE, false);   // Manually changing pump operation disables the automatic mode
+    PublishSettings();
+ }
 void p_ChlPump(StaticJsonDocument<250>  &_jsonsdoc) {
     if ((bool)_jsonsdoc[F("ChlPump")])
         ChlPump.Start();     //start Chl pump  
     else
         ChlPump.Stop();      //stop Chl pump      
 
-    storage.OrpAutoMode = 0;
-    saveParam("OrpAutoMode",storage.OrpAutoMode);
-    if (storage.OrpAutoMode == 0) SetOrpPID(false);
+    PMConfig.put<bool>(ORPAUTOMODE, false);
+    if (PMConfig.get<bool>(ORPAUTOMODE) == 0) SetOrpPID(false);
     PublishSettings();
 }
 void p_PhPID(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -468,9 +468,8 @@ void p_PhPID(StaticJsonDocument<250>  &_jsonsdoc) {
         SetPhPID(false);
 }
 void p_PhAutoMode(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.pHAutoMode = (int)_jsonsdoc[F("PhAutoMode")];
-    saveParam("pHAutoMode",storage.pHAutoMode);
-    if (storage.pHAutoMode == 0) SetPhPID(false);
+    PMConfig.put<bool>(PHAUTOMODE, (bool)_jsonsdoc[F("PhAutoMode")]);
+    if (PMConfig.get<bool>(PHAUTOMODE) == 0) SetPhPID(false);
     PublishSettings();
 }
 void p_OrpPID(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -480,11 +479,15 @@ void p_OrpPID(StaticJsonDocument<250>  &_jsonsdoc) {
         SetOrpPID(false);
 }
 void p_OrpAutoMode(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.OrpAutoMode = (bool)_jsonsdoc[F("OrpAutoMode")];
-    saveParam("OrpAutoMode",storage.OrpAutoMode);
-    if (storage.OrpAutoMode == 0) SetOrpPID(false);
+    PMConfig.put<bool>(ORPAUTOMODE, (bool)_jsonsdoc[F("OrpAutoMode")]);
+    if (PMConfig.get<bool>(ORPAUTOMODE) == 0) SetOrpPID(false);
     PublishSettings();
 }
+void p_FillAutoMode(StaticJsonDocument<250>  &_jsonsdoc) {
+    PMConfig.put<bool>(FILLAUTOMODE, (bool)_jsonsdoc[F("FillAutoMode")]);
+    PublishSettings();
+}
+
 //"Relay" command which is called to actuate relays
 //Parameter 1 is the relay number (R0 in this example), parameter 2 is the relay state (ON in this example).
 void p_Relay(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -520,30 +523,24 @@ void p_Clear(StaticJsonDocument<250>  &_jsonsdoc) {
 //"ElectroConfig" command which is called when the Electrolyser is configured
 //First parameter is minimum temperature to use the Electrolyser, second is the delay after pump start
 void p_ElectroConfig(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.SecureElectro = (uint8_t)_jsonsdoc[F("ElectroConfig")][0];
-    storage.DelayElectro = (uint8_t)_jsonsdoc[F("ElectroConfig")][1];
-    saveParam("SecureElectro",storage.SecureElectro);
-    saveParam("DelayElectro",storage.DelayElectro);               
+    PMConfig.put<uint8_t>(SECUREELECTRO, (uint8_t)_jsonsdoc[F("ElectroConfig")][0]);
+    PMConfig.put<uint8_t>(DELAYELECTRO, (uint8_t)_jsonsdoc[F("ElectroConfig")][1]);
     PublishSettings();
 }
 void p_SecureElectro(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.SecureElectro = (uint8_t)_jsonsdoc[F("SecureElectro")];
-    saveParam("SecureElectro",storage.SecureElectro);
+    PMConfig.put<uint8_t>(SECUREELECTRO, (uint8_t)_jsonsdoc[F("SecureElectro")]);
     PublishSettings();
 }
 void p_DelayElectro(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.DelayElectro = (uint8_t)_jsonsdoc[F("DelayElectro")];
-    saveParam("DelayElectro",storage.DelayElectro);
+    PMConfig.put<uint8_t>(DELAYELECTRO, (uint8_t)_jsonsdoc[F("DelayElectro")]);
     PublishSettings();
 }
 void p_ElectroRunMode(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.ElectroRunMode = (bool)_jsonsdoc[F("ElectroRunMode")];
-    saveParam("ElectroRunMode",storage.ElectroRunMode);
+    PMConfig.put<bool>(ELECTRORUNMODE, (bool)_jsonsdoc[F("ElectroRunMode")]);
     PublishSettings();
 }
 void p_ElectroRuntime(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.ElectroRuntime = (int)_jsonsdoc[F("ElectroRuntime")];
-    saveParam("ElectroRuntime",storage.ElectroRuntime);
+    PMConfig.put<uint8_t>(ELECTRORUNTIME, (uint8_t)_jsonsdoc[F("ElectroRuntime")]);
     PublishSettings();
 }
 void p_SetDateTime(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -561,18 +558,15 @@ void p_WifiConfig(StaticJsonDocument<250>  &_jsonsdoc) {
     WiFi.begin(WIFI_SSID, WIFI_PASS);
 }
 void p_MQTTConfig(StaticJsonDocument<250>  &_jsonsdoc) {
-    storage.MQTT_IP.fromString((const char*)_jsonsdoc[F("MQTTConfig")][0]);
-    storage.MQTT_PORT = (uint)_jsonsdoc[F("MQTTConfig")][1];
-    strcpy(storage.MQTT_LOGIN,_jsonsdoc[F("MQTTConfig")][2]);
-    strcpy(storage.MQTT_PASS,_jsonsdoc[F("MQTTConfig")][3]);
-    strcpy(storage.MQTT_ID,_jsonsdoc[F("MQTTConfig")][4]);
-    strcpy(storage.MQTT_TOPIC,_jsonsdoc[F("MQTTConfig")][5]);
-    saveParam("MQTT_IP",storage.MQTT_IP);
-    saveParam("MQTT_PORT",storage.MQTT_PORT);
-    saveParam("MQTT_LOGIN",storage.MQTT_LOGIN);
-    saveParam("MQTT_PASS",storage.MQTT_PASS);
-    saveParam("MQTT_ID",storage.MQTT_ID);
-    saveParam("MQTT_TOPIC",storage.MQTT_TOPIC);
+    IPAddress _mqtt_ip;
+    _mqtt_ip.fromString((const char*)_jsonsdoc[F("MQTTConfig")][0]);
+    PMConfig.put<uint32_t>(MQTT_IP, _mqtt_ip); // Save the IP address in PMConfig
+
+    PMConfig.put<uint32_t>(MQTT_PORT, (uint32_t)_jsonsdoc[F("MQTTConfig")][1]);
+    PMConfig.put<const char*>(MQTT_LOGIN, (const char*)_jsonsdoc[F("MQTTConfig")][2]);
+    PMConfig.put<const char*>(MQTT_PASS, (const char*)_jsonsdoc[F("MQTTConfig")][3]);
+    PMConfig.put<const char*>(MQTT_ID, (const char*)_jsonsdoc[F("MQTTConfig")][4]);
+    PMConfig.put<const char*>(MQTT_TOPIC, (const char*)_jsonsdoc[F("MQTTConfig")][5]);
 
     // Connect to new MQTT Credentials
     mqttDisconnect();
@@ -580,7 +574,15 @@ void p_MQTTConfig(StaticJsonDocument<250>  &_jsonsdoc) {
     // It automatically tries to reconnect using a timer
 }
 void p_SMTPConfig(StaticJsonDocument<250>  &_jsonsdoc) {
-    strcpy(storage.SMTP_SERVER,_jsonsdoc[F("SMTPConfig")][0]);
+    // Format of message is {"SMTPConfig":[SMTP_SERVER, SMTP_PORT, SMTP_LOGIN, SMTP_PASS, SMTP_SENDER, SMTP_RECIPIENT]}
+    // Save SMTP configuration
+    PMConfig.put<const char*>(SMTP_SERVER, (const char*)_jsonsdoc[F("SMTPConfig")][0]);
+    PMConfig.put<uint32_t>(SMTP_PORT, (uint32_t)_jsonsdoc[F("SMTPConfig")][1]);
+    PMConfig.put<const char*>(SMTP_LOGIN, (const char*)_jsonsdoc[F("SMTPConfig")][2]);
+    PMConfig.put<const char*>(SMTP_PASS, (const char*)_jsonsdoc[F("SMTPConfig")][3]);
+    PMConfig.put<const char*>(SMTP_SENDER, (const char*)_jsonsdoc[F("SMTPConfig")][4]);
+    PMConfig.put<const char*>(SMTP_RECIPIENT, (const char*)_jsonsdoc[F("SMTPConfig")][5]);
+    /*strcpy(storage.SMTP_SERVER,_jsonsdoc[F("SMTPConfig")][0]);
     storage.SMTP_PORT = (uint)_jsonsdoc[F("SMTPConfig")][1];
     strcpy(storage.SMTP_LOGIN,_jsonsdoc[F("SMTPConfig")][2]);
     strcpy(storage.SMTP_PASS,_jsonsdoc[F("SMTPConfig")][3]);
@@ -591,39 +593,23 @@ void p_SMTPConfig(StaticJsonDocument<250>  &_jsonsdoc) {
     saveParam("SMTP_LOGIN",storage.SMTP_LOGIN);
     saveParam("SMTP_PASS",storage.SMTP_PASS);
     saveParam("SMTP_SENDER",storage.SMTP_SENDER);
-    saveParam("SMTP_RECIPIENT",storage.SMTP_RECIPIENT);
+    saveParam("SMTP_RECIPIENT",storage.SMTP_RECIPIENT);*/
 }
 void p_PINConfig(StaticJsonDocument<250>  &_jsonsdoc) {
+    // Format of message is {"PINConfig":[index, pin_number, active_level, relay_operation_mode, interlock_id]}
     uint8_t temp_index = (uint8_t)_jsonsdoc[F("PINConfig")][0];
 
-    // Save changes
-    storage.PumpsConfig[temp_index].pin_number = (uint8_t)_jsonsdoc[F("PINConfig")][1]; // PIN Number
-    storage.PumpsConfig[temp_index].pin_active_level = (bool)_jsonsdoc[F("PINConfig")][2]; // LEVEL HIGH or LOW
-    storage.PumpsConfig[temp_index].relay_operation_mode = (bool)_jsonsdoc[F("PINConfig")][3]; // LATCH or MOMENTARY
     uint8_t lock_id = (uint8_t)_jsonsdoc[F("PINConfig")][4];
-    lock_id = ((lock_id == 255)?255:lock_id-1); // Nextion counts from 1 to 8 but GetInterlockId return from 0 to 7 (except NO_INTERLOCK which does not move)
-    storage.PumpsConfig[temp_index].pin_interlock = lock_id ; // INTERLOCK PIN INDEX (Nextion counts 1 to 8 so substract 1)
-    savePumpsConf();
+    lock_id = ((lock_id == NO_INTERLOCK)?NO_INTERLOCK:lock_id-1); // Nextion counts from 1 to 8 but GetInterlockId return from 0 to 7 (except NO_INTERLOCK which does not move)
 
+    PIN *tmp_device = PoolDeviceManager.GetDevice(temp_index);
     // Apply changes
-    Pool_Equipment[temp_index]->SetPinNumber((uint8_t)_jsonsdoc[F("PINConfig")][1]);
-    Pool_Equipment[temp_index]->SetActiveLevel((bool)_jsonsdoc[F("PINConfig")][2]);
-    Pool_Equipment[temp_index]->SetOperationMode((bool)_jsonsdoc[F("PINConfig")][3]);
-
-    // If an interlock is requested, loop through the equipment list to find its reference and assign the pointer
-    if(storage.PumpsConfig[temp_index].pin_interlock != NO_INTERLOCK)
-    {
-      for(auto equi_lock: Pool_Equipment)
-      {
-        if(equi_lock->GetPinId() == storage.PumpsConfig[temp_index].pin_interlock)
-        {
-          Pool_Equipment[temp_index]->SetInterlock(equi_lock);
-        }
-      }
-    }else
-    {
-      Pool_Equipment[temp_index]->SetInterlock(nullptr);
-    }
-    Pool_Equipment[temp_index]->Begin();
+    tmp_device->SetPinNumber((uint8_t)_jsonsdoc[F("PINConfig")][1]);
+    tmp_device->SetActiveLevel((bool)_jsonsdoc[F("PINConfig")][2]);
+    tmp_device->SetOperationMode((bool)_jsonsdoc[F("PINConfig")][3]);
+    tmp_device->SetInterlock((uint8_t)lock_id);
+    PoolDeviceManager.InitDevicesInterlock(temp_index);
+    tmp_device->Begin();
+    PoolDeviceManager.SavePreferences(temp_index);
 }
 

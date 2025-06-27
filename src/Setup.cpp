@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include "Config.h"
 #include "PoolMaster.h"
+#include "State_Machine.h"         // State machine for PoolMaster
 
 #ifdef SIMU
 bool init_simu = true;
@@ -50,21 +51,10 @@ StoreStruct storage =
   "",
   587,
   "", "","","",  
-  //FILLING_PUMP_MINI_DURATION,FILLING_PUMP_MAXI_DURATION,
-  0,
-  {
-    {  FILTRATION, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING, 0., 0., 100., NO_TANK, 0, 0},
-    {  PH_PUMP, OUTPUT_DIGITAL, 0,ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., PH_LEVEL, 0, PH_PUMP_MAX_UPTIME*60},
-    {  CHL_PUMP, OUTPUT_DIGITAL, 0,ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., CHL_LEVEL, 0, CHL_PUMP_MAX_UPTIME*60},
-    {  ROBOT, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  SWG_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  FILL_PUMP, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, FILLING_PUMP_MIN_UPTIME*60, FILLING_PUMP_MAX_UPTIME*60},
-    {  PROJ, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  SPARE, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-   }
+  0
 };
 #else
-StoreStruct storage =
+/*StoreStruct storage =
 { 
   CONFIG_VERSION,
   0, 0, 1, 0,
@@ -84,21 +74,22 @@ StoreStruct storage =
   "",
   587,
   "", "","","",  
-  //FILLING_PUMP_MIN_UPTIME,FILLING_PUMP_MAX_UPTIME,
-  0,
-  {
-    {  FILTRATION, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING, 0., 0., 100., NO_TANK, 0, 0},
-    {  PH_PUMP, OUTPUT_DIGITAL, 0,ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., PH_LEVEL, 0, PH_PUMP_MAX_UPTIME*60},
-    {  CHL_PUMP, OUTPUT_DIGITAL, 0,ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., CHL_LEVEL, 0, CHL_PUMP_MAX_UPTIME*60},
-    {  ROBOT, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  SWG_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  FILL_PUMP, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, FILLING_PUMP_MIN_UPTIME*60, FILLING_PUMP_MAX_UPTIME*60},
-    {  PROJ, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-    {  SPARE, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0},
-   }
-};
+  0
+};*/
 #endif
 tm timeinfo;
+
+RunTimeData PMData =
+{ 
+  0, 0,
+  13,
+  0, 0,
+  3.0, 
+  0.0, 0.0,
+  28.0, 
+  7.2, 720., 1.3,
+  7.2, 720
+};
 
 // Various global flags
 volatile bool startTasks = false;               // Signal to start loop tasks
@@ -144,40 +135,49 @@ Preferences nvs;
 //    5/ Tankvolume is used to compute the percentage of tank used/remaining
 // IMPORTANT NOTE: second argument is ID and MUST correspond to the equipment index in the "Pool_Equipment" vector
 // FiltrationPump: This Pump controls the filtration, no tank attached and not interlocked to any element. SSD relay attached works with HIGH level.
-Pump FiltrationPump(FILTRATION,0);
+
+Pump FiltrationPump(FILTRATION);
 // pHPump: This Pump has no low-level switch so remaining volume is estimated. It is interlocked with the relay of the FilrationPump
 //Pump PhPump(PH_PUMP, PH_LEVEL, ACTIVE_LOW, MODE_LATCHING, storage.pHPumpFR, storage.pHTankVol, storage.AcidFill);
-Pump PhPump(PH_PUMP,1);
+Pump PhPump(PH_PUMP,PH_LEVEL);
 // ChlPump: This Pump has no low-level switch so remaining volume is estimated. It is interlocked with the relay of the FilrationPump
 //Pump ChlPump(CHL_PUMP, CHL_LEVEL, ACTIVE_LOW, MODE_LATCHING, storage.ChlPumpFR, storage.ChlTankVol, storage.ChlFill);
-Pump ChlPump(CHL_PUMP,2);
+Pump ChlPump(CHL_PUMP,CHL_LEVEL);
 // RobotPump: This Pump is not injecting liquid so tank is associated to it. It is interlocked with the relay of the FilrationPump
-Pump RobotPump(ROBOT,3);
+Pump RobotPump(ROBOT);
 // SWG: This Pump is associated with a Salt Water Chlorine Generator. It turns on and off the equipment to produce chlorine.
 // It has no tank associated. It is interlocked with the relay of the FilrationPump
-Pump SWGPump(SWG_PUMP,4); // SWG is interlocked with the Pump Relay
+Pump SWGPump(SWG_PUMP);
 // Filling Pump: This pump is autonomous, not interlocked with filtering pump.
-Pump FillingPump(FILL_PUMP,5);
-//Pump *FillingPump;
+Pump FillingPump(FILL_PUMP);
 
 // The Relays class to activate and deactivate digital pins
-Relay RELAYR0(PROJ,6);
-Relay RELAYR1(SPARE,7);
+Relay RELAYR0(PROJ,OUTPUT_DIGITAL); // Relay for the projector
+Relay RELAYR1(SPARE,OUTPUT_DIGITAL); // Relay for the spare
+
+// Input ports
+InputSensor PoolWaterLevelSensor(POOL_LEVEL); // Pool water level sensor (pool level ok if HIGH and pool level problem if LOW)
 
 // List of all the equipment of PoolMaster
-std::vector<PIN*> Pool_Equipment;
+//std::vector<PIN*> Pool_Equipment;
+DeviceManager PoolDeviceManager;
+
+double pHValue = 0.0;                // pH value
 
 // PIDs instances
 //Specify the direction and initial tuning parameters
-PID PhPID(&storage.PhValue, &storage.PhPIDOutput, &storage.Ph_SetPoint, storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd, PhPID_DIRECTION);
-PID OrpPID(&storage.OrpValue, &storage.OrpPIDOutput, &storage.Orp_SetPoint, storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd, OrpPID_DIRECTION);
+PID PhPID(&PMData.PhValue, &PMData.PhPIDOutput, &PMData.Ph_SetPoint, 0, 0, 0, PhPID_DIRECTION);
+PID OrpPID(&PMData.OrpValue, &PMData.OrpPIDOutput, &PMData.Orp_SetPoint, 0, 0, 0, OrpPID_DIRECTION);
 
 // Publishing tasks handles to notify them
 static TaskHandle_t pubSetTaskHandle;
 static TaskHandle_t pubMeasTaskHandle;
 
 // Used for ElegantOTA
-unsigned long ota_progress_millis = 0;
+//unsigned long ota_progress_millis = 0;
+
+// Configuration Manager
+ConfigManager PMConfig;
 
 // Mutex to share access to I2C bus among two tasks: AnalogPoll and StatusLights
 static SemaphoreHandle_t mutex;
@@ -185,8 +185,8 @@ static SemaphoreHandle_t mutex;
 // Functions prototypes
 void StartTime(void);
 bool readLocalTime(void);
-bool loadConfig(void);
-bool saveConfig(void);
+//bool loadConfig(void);
+//bool saveConfig(void);
 void WiFiEvent(WiFiEvent_t);
 void initTimers(void);
 void InitWiFi(void);
@@ -200,11 +200,11 @@ void SetOrpPID(bool);
 int  freeRam (void);
 void AnalogInit(void);
 void TempInit(void);
-uint8_t loadParam(const char*, uint8_t);
-bool loadParam(const char* ,bool);
-bool saveParam(const char*,uint8_t );
-bool saveParam(const char*,bool );
-bool savePumpsConf();
+//uint8_t loadParam(const char*, uint8_t);
+//bool loadParam(const char* ,bool);
+//bool saveParam(const char*,uint8_t );
+//bool saveParam(const char*,bool );
+//bool savePumpsConf();
 unsigned stack_hwm();
 void stack_mon(UBaseType_t&);
 void info();
@@ -221,12 +221,11 @@ void MeasuresPublish(void*);
 void StatusLights(void*);
 void UpdateTFT(void*);
 void HistoryStats(void *);
-void int_array_init(uint8_t *a, const int ct, ...);
 
 // For ElegantOTA
-void onOTAStart(void);
+/*void onOTAStart(void);
 void onOTAProgress(size_t,size_t);
-void onOTAEnd(bool);
+void onOTAEnd(bool);*/
 
 // Setup
 void setup()
@@ -247,6 +246,7 @@ void setup()
   // Initialize Nextion TFT
   ResetTFT();
   PoolMaster_BoardReady = true;
+  /*
   //Read ConfigVersion. If does not match expected value, restore default values
   if(nvs.begin("PoolMaster",true))
   {
@@ -271,6 +271,72 @@ void setup()
     Debug.print(DBG_INFO,"New version: %d. First saving of settings",CONFIG_VERSION);      
       if(saveConfig()) Debug.print(DBG_INFO,"Config saved");  //First time use. Save new default values to NVS
   }  
+*/
+  // Initialize configuration manager
+  // List of parameters are in PoolMaster.h, in the ParamID enum
+  // Please update the list if you add new parameters
+  // Supported types are: bool, uint8_t, unsigned long, double, char* and uint32_t
+  PMConfig.SetNamespace(CONFIG_NVS_NAME);
+  PMConfig.initParam(AUTOMODE,            "AutoMode",               false);
+  PMConfig.initParam(WINTERMODE,          "WinterMode",             false);
+  PMConfig.initParam(FILTRATIONSTART,     "FiltrStart",             (uint8_t)8); 
+  PMConfig.initParam(FILTRATIONSTOP,      "FiltrStop",              (uint8_t)20); 
+  PMConfig.initParam(FILTRATIONSTARTMIN,  "FiltrStartMin",          (uint8_t)8); 
+  PMConfig.initParam(FILTRATIONSTOPMAX,   "FiltrStopMax",           (uint8_t)22); 
+  PMConfig.initParam(DELAYPIDS,           "DelayPIDs",              (uint8_t)15); 
+  PMConfig.initParam(PUBLISHPERIOD,       "PublishPeriod",          (unsigned long)PUBLISHINTERVAL);
+  PMConfig.initParam(PHPIDWINDOWSIZE,     "PhPIDWSize",             (unsigned long)60000);
+  PMConfig.initParam(ORPPIDWINDOWSIZE,    "OrpPIDWSize",            (unsigned long)30000);
+  PMConfig.initParam(PH_SETPOINT,         "PhSetPoint",             (double)7.2);
+  PMConfig.initParam(ORP_SETPOINT,        "OrpSetPoint",            (double)750.0);
+  PMConfig.initParam(PSI_HIGHTHRESHOLD,   "PSIHigh",                (double)0.5);
+  PMConfig.initParam(PSI_MEDTHRESHOLD,    "PSIMed",                 (double)0.25);
+  PMConfig.initParam(WATERTEMPLOWTHRESHOLD,"WaterTempLow",          (double)10.0);
+  PMConfig.initParam(WATERTEMP_SETPOINT,  "WaterTempSet",           (double)27.0);
+  #ifdef EXT_ADS1115
+    PMConfig.initParam(PHCALIBCOEFFS0,      "pHCalibCoeffs0",         (double)-2.50133333);
+    PMConfig.initParam(PHCALIBCOEFFS1,      "pHCalibCoeffs1",         (double)6.9);
+    PMConfig.initParam(ORPCALIBCOEFFS0,     "OrpCalibCoeffs0",        (double)431.03);
+    PMConfig.initParam(ORPCALIBCOEFFS1,     "OrpCalibCoeffs1",        (double)0.0);
+  #else
+    PMConfig.initParam(PHCALIBCOEFFS0,      "pHCalibCoeffs0",         (double)0.9583);
+    PMConfig.initParam(PHCALIBCOEFFS1,      "pHCalibCoeffs1",         (double)4.834);
+    PMConfig.initParam(ORPCALIBCOEFFS0,     "OrpCalibCoeffs0",        (double)129.2);
+    PMConfig.initParam(ORPCALIBCOEFFS1,     "OrpCalibCoeffs1",        (double)384.1);
+  #endif
+  PMConfig.initParam(PSICALIBCOEFFS0,     "PSICalibCoeffs0",        (double)0.377923399);
+  PMConfig.initParam(PSICALIBCOEFFS1,     "PSICalibCoeffs1",        (double)-0.17634473);
+  PMConfig.initParam(PH_KP,               "PhKp",                   (double)2000000.0);
+  PMConfig.initParam(PH_KI,               "PhKi",                   (double)0.0);
+  PMConfig.initParam(PH_KD,               "PhKd",                   (double)0.0);
+  PMConfig.initParam(ORP_KP,              "OrpKp",                  (double)2500.0);
+  PMConfig.initParam(ORP_KI,              "OrpKi",                  (double)0.0);
+  PMConfig.initParam(ORP_KD,              "OrpKd",                  (double)0.0);
+  PMConfig.initParam(SECUREELECTRO,       "SecureElectro",          (uint8_t)15);
+  PMConfig.initParam(DELAYELECTRO,        "DelayElectro",           (uint8_t)2);
+  PMConfig.initParam(ELECTRORUNMODE,      "ElectroRunMode",         (bool)SWG_MODE_ADJUST);
+  PMConfig.initParam(ELECTRORUNTIME,      "ElectroRunTime",         (uint8_t)8);
+  PMConfig.initParam(ELECTROLYSEMODE,     "ElectrolyseMode",        (bool)false);
+  PMConfig.initParam(PHAUTOMODE,          "PhAutoMode",             (bool)false);
+  PMConfig.initParam(ORPAUTOMODE,         "OrpAutoMode",            (bool)false);
+  PMConfig.initParam(FILLAUTOMODE,        "FillAutoMode",           (bool)false);
+  PMConfig.initParam(LANG_LOCALE,         "LangLocale",             (uint8_t)0);
+  PMConfig.initParam(MQTT_IP,             "MqttIP",                 (uint32_t)IPAddress(192,168,0,0));
+  PMConfig.initParam(MQTT_PORT,           "MqttPort",               (uint32_t)1883);
+  PMConfig.initParam(MQTT_LOGIN,          "MqttLogin",              (char*)"");
+  PMConfig.initParam(MQTT_PASS,           "MqttPass",               (char*)"");
+  PMConfig.initParam(MQTT_ID,             "MqttId",                 (char*)MQTTID);
+  PMConfig.initParam(MQTT_TOPIC,          "MqttTopic",              (char*)POOLTOPIC);
+  PMConfig.initParam(SMTP_SERVER,         "SmtpServer",             (char*)"");
+  PMConfig.initParam(SMTP_PORT,           "SmtpPort",               (uint32_t)587);
+  PMConfig.initParam(SMTP_LOGIN,          "SmtpLogin",              (char*)"");
+  PMConfig.initParam(SMTP_PASS,           "SmtpPass",               (char*)"");
+  PMConfig.initParam(SMTP_SENDER,         "SmtpSender",             (char*)"");
+  PMConfig.initParam(SMTP_RECIPIENT,      "SmtpRecipient",          (char*)"");
+  PMConfig.initParam(BUZZERON,            "BuzzerOn",               (bool)true);
+  // End of configuration manager initialization
+
+  PMConfig.printAllParams(); // Print all parameters to Serial for debug
 
   //Define pins directions
   pinMode(BUZZER, OUTPUT);
@@ -278,48 +344,50 @@ void setup()
   // Warning: pins used here have no pull-ups, provide external ones
   pinMode(CHL_LEVEL, INPUT);
   pinMode(PH_LEVEL, INPUT);
-  pinMode(POOL_LEVEL, INPUT);
 
-  // Fill the table of equipments (FiltrationPump is index [0])
-  // save their configs
-  // The order MUST correspond to the index when the Pumps and Relays objects are created
-  Pool_Equipment.push_back(&FiltrationPump);
-  Pool_Equipment.push_back(&PhPump);
-  Pool_Equipment.push_back(&ChlPump);
-  Pool_Equipment.push_back(&RobotPump);
-  Pool_Equipment.push_back(&SWGPump);
-  Pool_Equipment.push_back(&FillingPump);
-  Pool_Equipment.push_back(&RELAYR0);
-  Pool_Equipment.push_back(&RELAYR1);
+  // Initialize default's devices name
+  FiltrationPump.SetName("Filtration Pump");
+  PhPump.SetName("pH Pump");
+  ChlPump.SetName("Chlorine Pump");
+  RobotPump.SetName("Robot Pump");
+  SWGPump.SetName("SWG Pump");
+  FillingPump.SetName("Filling Pump");
+  RELAYR0.SetName("Projector Relay");
+  RELAYR1.SetName("Spare Relay");
+  PoolWaterLevelSensor.SetName("Water Level Sensor");
 
-  // Assign globals configuration parameters to pumps (pin number, high/low level and operation mode)
-  int i=0;
-  for(auto& equi: Pool_Equipment)
-  {
-    equi->SetPinNumber(storage.PumpsConfig[i].pin_number,storage.PumpsConfig[i].pin_direction, storage.PumpsConfig[i].pin_active_level);
-    equi->SetOperationMode(storage.PumpsConfig[i].relay_operation_mode);
-    equi->SetFlowRate(storage.PumpsConfig[i].pump_flow_rate);
-    equi->SetTankVolume(storage.PumpsConfig[i].tank_vol);
-    equi->SetTankFill(storage.PumpsConfig[i].tank_fill);
-    equi->SetTankLevelPIN(storage.PumpsConfig[i].tank_level_pin);
-    equi->SetMaxUpTime(storage.PumpsConfig[i].pump_max_uptime * 1000);
+  // Sets all default values for the pumps. If preferences are loaded from NVS, these values will be overwritten on a value per value basis.
+  PhPump.SetInterlock(DEVICE_FILTPUMP); // pH Pump interlocked with Filtration Pump
+  ChlPump.SetInterlock(DEVICE_FILTPUMP); // Chlorine Pump interlocked with Filtration Pump
+  RobotPump.SetInterlock(DEVICE_FILTPUMP); // Robot Pump interlocked with Filtration Pump
+  SWGPump.SetInterlock(DEVICE_FILTPUMP); // SWG Pump interlocked
+  
+  // Default values for the pumps
+  FillingPump.SetMinUpTime(5*60*1000);  // Minimum running uptime for Filling Pump is 5 minutes (avoir short runs)
+  FiltrationPump.SetMaxUpTime(0); // No Maximum uptime for Filtration Pump
 
-    // Initialize the interlocks
-    if(storage.PumpsConfig[i].pin_interlock != NO_INTERLOCK)
-    {
-      for(auto equi_lock: Pool_Equipment)
-      {
-        if(equi_lock->GetPinId() == storage.PumpsConfig[i].pin_interlock)
-        {
-          equi->SetInterlock(equi_lock);
-          Debug.print(DBG_INFO,"Configure Interlock %d = %d",i, Pool_Equipment[i]->GetInterlockId());
-        }
-      }
-    }
-    // Start Pump Operation
-    equi->Begin();
-    i++;
-  }
+  // Initialize the state machine handlers for the pumps
+  FillingPump.SetHandlers(FillingPump_StartCondition,FillingPump_StopCondition,FillingPump_StartAction,FillingPump_StopAction);
+  FiltrationPump.SetHandlers(FiltrationPump_StartCondition,FiltrationPump_StopCondition,FiltrationPump_StartAction,FiltrationPump_StopAction);
+  FiltrationPump.SetLoopHandler(FiltrationPump_LoopActions);
+  RobotPump.SetHandlers(RobotPump_StartCondition,RobotPump_StopCondition,RobotPump_StartAction,RobotPump_StopAction);
+  SWGPump.SetHandlers(SWGPump_StartCondition,SWGPump_StopCondition,SWGPump_StartAction,SWGPump_StopAction);
+
+  // Fill DeviceManager with the list of devices
+  PoolDeviceManager.AddDevice(DEVICE_FILTPUMP,&FiltrationPump);
+  PoolDeviceManager.AddDevice(DEVICE_PH_PUMP,&PhPump);
+  PoolDeviceManager.AddDevice(DEVICE_CHL_PUMP,&ChlPump);
+  PoolDeviceManager.AddDevice(DEVICE_ROBOT,&RobotPump);
+  PoolDeviceManager.AddDevice(DEVICE_SWG,&SWGPump);
+  PoolDeviceManager.AddDevice(DEVICE_FILLING_PUMP,&FillingPump);
+  PoolDeviceManager.AddDevice(DEVICE_RELAY0,&RELAYR0);
+  PoolDeviceManager.AddDevice(DEVICE_RELAY1,&RELAYR1);
+  PoolDeviceManager.AddDevice(DEVICE_POOL_LEVEL,&PoolWaterLevelSensor);
+
+  // Load configuration parameters from NVS for all devices
+  PoolDeviceManager.LoadPreferences();
+  PoolDeviceManager.InitDevicesInterlock();
+  PoolDeviceManager.Begin();
 
   // Initialize watch-dog
   esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -356,31 +424,25 @@ void setup()
   Wire.endTransmission();
 
   // Initialize PIDs
-  storage.PhPIDwindowStartTime  = millis();
-  storage.OrpPIDwindowStartTime = millis();
-  
-  // Limit the PIDs output range in order to limit max. pumps runtime (safety first...)
-  PhPID.SetTunings(storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd);
-  PhPID.SetControllerDirection(PhPID_DIRECTION);
-  PhPID.SetSampleTime((int)storage.PhPIDWindowSize);
-  PhPID.SetOutputLimits(0, storage.PhPIDWindowSize);    //Whatever happens, don't allow continuous injection of Acid for more than a PID Window
+  PMData.PhPIDwStart  = millis();
+  PMData.OrpPIDwStart  = millis();
 
-  OrpPID.SetTunings(storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd);
+  // Limit the PIDs output range in order to limit max. pumps runtime (safety first...)
+  PhPID.SetTunings(PMConfig.get<double>(PH_KP), PMConfig.get<double>(PH_KI), PMConfig.get<double>(PH_KD));
+  PhPID.SetControllerDirection(PhPID_DIRECTION);
+  PhPID.SetSampleTime((int)PMConfig.get<unsigned long>(PHPIDWINDOWSIZE));
+  PhPID.SetOutputLimits(0, PMConfig.get<unsigned long>(PHPIDWINDOWSIZE));    //Whatever happens, don't allow continuous injection of Acid for more than a PID Window
+
+  OrpPID.SetTunings(PMConfig.get<double>(ORP_KP), PMConfig.get<double>(ORP_KI), PMConfig.get<double>(ORP_KD));
   OrpPID.SetControllerDirection(OrpPID_DIRECTION);
-  OrpPID.SetSampleTime((int)storage.OrpPIDWindowSize);
-  OrpPID.SetOutputLimits(0, storage.OrpPIDWindowSize);  //Whatever happens, don't allow continuous injection of Chl for more than a PID Window
+  OrpPID.SetSampleTime((int)PMConfig.get<unsigned long>(ORPPIDWINDOWSIZE));
+  OrpPID.SetOutputLimits(0, PMConfig.get<unsigned long>(ORPPIDWINDOWSIZE));  //Whatever happens, don't allow continuous injection of Chl for more than a PID Window
 
   // PIDs off at start
   SetPhPID (false);
   SetOrpPID(false);
 
-  // Robot pump off at start
-  RobotPump.Stop();
-  
-  // Pool Filling pump off at start
-  FillingPump.Stop();
-
-  // Create queue for external commands
+   // Create queue for external commands
   queueIn = xQueueCreate((UBaseType_t)QUEUE_ITEMS_NBR,(UBaseType_t)QUEUE_ITEM_SIZE);
 
   // Create loop tasks in the scheduler.
@@ -513,7 +575,7 @@ void setup()
     app_cpu
   );
 
-#ifdef ELEGANT_OTA
+/*#ifdef ELEGANT_OTA
 // ELEGANTOTA Configuration
   //server.on("/", []() {
   //  server.send(200, "text/plain", "NA");
@@ -530,7 +592,7 @@ void setup()
 #ifdef ELEGANT_OTA_AUTH
   ElegantOTA.setAuth(ELEGANT_OTA_USERNAME, ELEGANT_OTA_PASSWORD);
 #endif
-#endif
+#endif*/
 
   // Initialize OTA (On The Air update)
   //-----------------------------------
@@ -575,7 +637,7 @@ void setup()
 
 }
 
-
+/*
 void onOTAStart() {
   // Log when OTA has started
   Debug.print(DBG_WARNING,"OTA update started!");
@@ -599,288 +661,7 @@ void onOTAEnd(bool success) {
     Debug.print(DBG_ERROR,"There was an error during OTA update!");
   }
   // <Add your own code here>
-}
-
-bool loadConfig()
-{
-  size_t read_len = 0;
-  nvs.begin("PoolMaster",true);
-
-  storage.ConfigVersion         = nvs.getUChar("ConfigVersion",0);
-  storage.Ph_RegulationOnOff    = nvs.getBool("Ph_RegOnOff",false);
-  storage.Orp_RegulationOnOff   = nvs.getBool("Orp_RegOnOff",false);  
-  storage.AutoMode              = nvs.getBool("AutoMode",true);
-  storage.WinterMode            = nvs.getBool("WinterMode",false);
-  storage.FiltrationDuration    = nvs.getUChar("FiltrDuration",12);
-  storage.FiltrationStart       = nvs.getUChar("FiltrStart",8);
-  storage.FiltrationStop        = nvs.getUChar("FiltrStop",20);
-  storage.FiltrationStartMin    = nvs.getUChar("FiltrStartMin",8);
-  storage.FiltrationStopMax     = nvs.getUChar("FiltrStopMax",22);
-  storage.DelayPIDs             = nvs.getUChar("DelayPIDs",0);
-  storage.PublishPeriod         = nvs.getULong("PublishPeriod",PUBLISHINTERVAL);
-  storage.PhPIDWindowSize       = nvs.getULong("PhPIDWSize",60000);
-  storage.OrpPIDWindowSize      = nvs.getULong("OrpPIDWSize",60000);
-  storage.PhPIDwindowStartTime  = nvs.getULong("PhPIDwStart",0);
-  storage.OrpPIDwindowStartTime = nvs.getULong("OrpPIDwStart",0);
-  storage.Ph_SetPoint           = nvs.getDouble("Ph_SetPoint",7.3);
-  storage.Orp_SetPoint          = nvs.getDouble("Orp_SetPoint",750);
-  storage.PSI_HighThreshold     = nvs.getDouble("PSI_High",0.5);
-  storage.PSI_MedThreshold      = nvs.getDouble("PSI_Med",0.25);
-  storage.WaterTempLowThreshold = nvs.getDouble("WaterTempLow",10.);
-  storage.WaterTemp_SetPoint    = nvs.getDouble("WaterTempSet",27.);
-  storage.AirTemp               = nvs.getDouble("TempExternal",3.);
-  storage.pHCalibCoeffs0        = nvs.getDouble("pHCalibCoeffs0",-2.50133333);
-  storage.pHCalibCoeffs1        = nvs.getDouble("pHCalibCoeffs1",6.9);
-  storage.OrpCalibCoeffs0       = nvs.getDouble("OrpCalibCoeffs0",431.03);
-  storage.OrpCalibCoeffs1       = nvs.getDouble("OrpCalibCoeffs1",0);
-  storage.PSICalibCoeffs0       = nvs.getDouble("PSICalibCoeffs0",0.377923399);
-  storage.PSICalibCoeffs1       = nvs.getDouble("PSICalibCoeffs1",-0.17634473);
-  storage.Ph_Kp                 = nvs.getDouble("Ph_Kp",2000000.);
-  storage.Ph_Ki                 = nvs.getDouble("Ph_Ki",0.);
-  storage.Ph_Kd                 = nvs.getDouble("Ph_Kd",0.);
-  storage.Orp_Kp                = nvs.getDouble("Orp_Kp",2500.);
-  storage.Orp_Ki                = nvs.getDouble("Orp_Ki",0.);
-  storage.Orp_Kd                = nvs.getDouble("Orp_Kd",0.);
-  storage.PhPIDOutput           = nvs.getDouble("PhPIDOutput",0.);
-  storage.OrpPIDOutput          = nvs.getDouble("OrpPIDOutput",0.);
-  storage.WaterTemp             = nvs.getDouble("TempValue",18.);
-  storage.PhValue               = nvs.getDouble("PhValue",0.);
-  storage.OrpValue              = nvs.getDouble("OrpValue",0.);
-  storage.PSIValue              = nvs.getDouble("PSIValue",0.4);
-  storage.SecureElectro         = nvs.getUChar("SecureElectro",15); 
-  storage.DelayElectro          = nvs.getUChar("DelayElectro",2); 
-  storage.ElectroRunMode       = nvs.getBool("ElectroRunMode",SWG_MODE_ADJUST); 
-  storage.ElectroRuntime       = nvs.getUChar("ElectroRunTime",8);
-  storage.ElectrolyseMode       = nvs.getBool("ElectrolyseMode",false); 
-  storage.pHAutoMode            = nvs.getBool("pHAutoMode",false);
-  storage.OrpAutoMode           = nvs.getBool("OrpAutoMode",false); 
-  storage.Lang_Locale           = nvs.getUChar("Lang_Locale",0);
-  storage.MQTT_IP               = nvs.getUInt("MQTT_IP",IPAddress(192,168,0,0));
-  storage.MQTT_PORT             = nvs.getUInt("MQTT_PORT",1883);
-  storage.SMTP_PORT             = nvs.getUInt("SMTP_PORT",587);
-  
-  nvs.getString("SMTP_SERVER",storage.SMTP_SERVER,49); 
-  nvs.getString("SMTP_LOGIN",storage.SMTP_LOGIN,62); 
-  nvs.getString("SMTP_PASS",storage.SMTP_PASS,62); 
-  nvs.getString("SMTP_SENDER",storage.SMTP_SENDER,149); 
-  nvs.getString("SMTP_RECIPIENT",storage.SMTP_RECIPIENT,149); 
-
-  nvs.getString("MQTT_LOGIN",storage.MQTT_LOGIN,62); 
-  nvs.getString("MQTT_PASS",storage.MQTT_PASS,62);
-  if(nvs.getString("MQTT_ID",storage.MQTT_ID,29) == 0) {
-    snprintf(storage.MQTT_ID,sizeof(storage.MQTT_ID),"%s",MQTTID);
-  }
-  if(nvs.getString("MQTT_TOPIC",storage.MQTT_TOPIC,49) == 0) {
-    snprintf(storage.MQTT_TOPIC,sizeof(storage.MQTT_TOPIC),"%s",POOLTOPIC);
-  }
-  
-  storage.BuzzerOn              = nvs.getBool("BuzzerOn",true);
-
-  // Retreive Pumps Config if not existent take default
-  if(nvs.getBytes("PumpsConf", &storage.PumpsConfig, sizeof(storage.PumpsConfig)) == 0) {
-    storage.PumpsConfig[0] = {  FILTRATION, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING, 0., 0., 100., NO_TANK, 0, 0};
-    storage.PumpsConfig[1] = {  PH_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., PH_LEVEL, 0, PH_PUMP_MAX_UPTIME*60};
-    storage.PumpsConfig[2] = {  CHL_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 1.5, 20., 100., CHL_LEVEL, 0, CHL_PUMP_MAX_UPTIME*60};
-    storage.PumpsConfig[3] = {  ROBOT, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0};
-    storage.PumpsConfig[4] = {  SWG_PUMP, OUTPUT_DIGITAL, 0, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0};
-    storage.PumpsConfig[5] = {  FILL_PUMP, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, FILLING_PUMP_MIN_UPTIME, FILLING_PUMP_MAX_UPTIME};
-    storage.PumpsConfig[6] = {  PROJ, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0};
-    storage.PumpsConfig[7] = {  SPARE, OUTPUT_DIGITAL, NO_INTERLOCK, ACTIVE_LOW, MODE_LATCHING , 0., 0., 100., NO_TANK, 0, 0};
-  }
- 
-  nvs.end();
-
-  Debug.print(DBG_INFO,"%d",storage.ConfigVersion);
-  Debug.print(DBG_INFO,"%d, %d, %d, %d",storage.Ph_RegulationOnOff,storage.Orp_RegulationOnOff,storage.AutoMode,storage.WinterMode);
-  Debug.print(DBG_INFO,"%d, %d, %d, %d, %d, %d",storage.FiltrationDuration,storage.FiltrationStart,storage.FiltrationStop,
-              storage.FiltrationStartMin,storage.FiltrationStopMax,storage.DelayPIDs);
-  delay(100);
-  Debug.print(DBG_INFO,"%d",storage.PublishPeriod);
-  
-  Debug.print(DBG_INFO,"%d, %d, %d, %d",storage.PhPIDWindowSize,storage.OrpPIDWindowSize,storage.PhPIDwindowStartTime,storage.OrpPIDwindowStartTime);
-  Debug.print(DBG_INFO,"%3.1f, %4.0f, %3.1f, %3.1f, %3.0f, %3.0f, %4.1f, %8.6f, %9.6f, %11.6f, %11.6f, %3.1f, %3.1f",
-              storage.Ph_SetPoint,storage.Orp_SetPoint,storage.PSI_HighThreshold,
-              storage.PSI_MedThreshold,storage.WaterTempLowThreshold,storage.WaterTemp_SetPoint,storage.AirTemp,
-              storage.pHCalibCoeffs0,storage.pHCalibCoeffs1,storage.OrpCalibCoeffs0,storage.OrpCalibCoeffs1,
-              storage.PSICalibCoeffs0,storage.PSICalibCoeffs1);
-  delay(100);
-  Debug.print(DBG_INFO,"%8.0f, %3.0f, %3.0f, %6.0f, %3.0f, %3.0f, %7.0f, %7.0f, %4.2f, %4.2f, %4.0f, %4.2f",
-              storage.Ph_Kp,storage.Ph_Ki,storage.Ph_Kd,storage.Orp_Kp,storage.Orp_Ki,storage.Orp_Kd,
-              storage.PhPIDOutput,storage.OrpPIDOutput,storage.WaterTemp,storage.PhValue,storage.OrpValue,storage.PSIValue);
-  Debug.print(DBG_INFO,"%d, %d, %d, %d, %d %d",storage.SecureElectro,storage.DelayElectro,storage.ElectrolyseMode,storage.pHAutoMode,
-              storage.OrpAutoMode,storage.Lang_Locale);
-  delay(100);
-  Debug.print(DBG_INFO,"%s, %d, %s, %s, %s %s",storage.MQTT_IP.toString().c_str(),storage.MQTT_PORT,storage.MQTT_LOGIN,storage.MQTT_PASS,
-    storage.MQTT_ID,storage.MQTT_TOPIC);
-  delay(100);
-  Debug.print(DBG_INFO,"%s, %d, %s, %s, %s",storage.SMTP_SERVER,storage.SMTP_PORT, storage.SMTP_LOGIN,storage.SMTP_SENDER,storage.SMTP_RECIPIENT);
-  
-  
-  return (storage.ConfigVersion == CONFIG_VERSION);
-}
-
-bool saveConfig()
-{
-  nvs.begin("PoolMaster",false);
-
-  size_t i = nvs.putUChar("ConfigVersion",storage.ConfigVersion);
-  i += nvs.putBool("Ph_RegOnOff",storage.Ph_RegulationOnOff);
-  i += nvs.putBool("Orp_RegOnOff",storage.Orp_RegulationOnOff);  
-  i += nvs.putBool("AutoMode",storage.AutoMode);
-  i += nvs.putBool("WinterMode",storage.WinterMode);
-  i += nvs.putUChar("FiltrDuration",storage.FiltrationDuration);
-  i += nvs.putUChar("FiltrStart",storage.FiltrationStart);
-  i += nvs.putUChar("FiltrStop",storage.FiltrationStop);
-  i += nvs.putUChar("FiltrStartMin",storage.FiltrationStartMin);
-  i += nvs.putUChar("FiltrStopMax",storage.FiltrationStopMax);
-  i += nvs.putUChar("DelayPIDs",storage.DelayPIDs);
-  i += nvs.putULong("PublishPeriod",storage.PublishPeriod);
-  i += nvs.putULong("PhPIDWSize",storage.PhPIDWindowSize);
-  i += nvs.putULong("OrpPIDWSize",storage.OrpPIDWindowSize);
-  i += nvs.putULong("PhPIDwStart",storage.PhPIDwindowStartTime);
-  i += nvs.putULong("OrpPIDwStart",storage.OrpPIDwindowStartTime);
-  i += nvs.putDouble("Ph_SetPoint",storage.Ph_SetPoint);
-  i += nvs.putDouble("Orp_SetPoint",storage.Orp_SetPoint);
-  i += nvs.putDouble("PSI_High",storage.PSI_HighThreshold);
-  i += nvs.putDouble("PSI_Med",storage.PSI_MedThreshold);
-  i += nvs.putDouble("WaterTempLow",storage.WaterTempLowThreshold);
-  i += nvs.putDouble("WaterTempSet",storage.WaterTemp_SetPoint);
-  i += nvs.putDouble("TempExternal",storage.AirTemp);
-  i += nvs.putDouble("pHCalibCoeffs0",storage.pHCalibCoeffs0);
-  i += nvs.putDouble("pHCalibCoeffs1",storage.pHCalibCoeffs1);
-  i += nvs.putDouble("OrpCalibCoeffs0",storage.OrpCalibCoeffs0);
-  i += nvs.putDouble("OrpCalibCoeffs1",storage.OrpCalibCoeffs1);
-  i += nvs.putDouble("PSICalibCoeffs0",storage.PSICalibCoeffs0);
-  i += nvs.putDouble("PSICalibCoeffs1",storage.PSICalibCoeffs1);
-  i += nvs.putDouble("Ph_Kp",storage.Ph_Kp);
-  i += nvs.putDouble("Ph_Ki",storage.Ph_Ki);
-  i += nvs.putDouble("Ph_Kd",storage.Ph_Kd);
-  i += nvs.putDouble("Orp_Kp",storage.Orp_Kp);
-  i += nvs.putDouble("Orp_Ki",storage.Orp_Ki);
-  i += nvs.putDouble("Orp_Kd",storage.Orp_Kd);
-  i += nvs.putDouble("PhPIDOutput",storage.PhPIDOutput);
-  i += nvs.putDouble("OrpPIDOutput",storage.OrpPIDOutput);
-  i += nvs.putDouble("TempValue",storage.WaterTemp);
-  i += nvs.putDouble("PhValue",storage.PhValue);
-  i += nvs.putDouble("OrpValue",storage.OrpValue);
-  i += nvs.putDouble("PSIValue",storage.PSIValue);
-  i += nvs.putUChar("SecureElectro",storage.SecureElectro);
-  i += nvs.putUChar("DelayElectro",storage.DelayElectro);
-  i += nvs.putBool("ElectroRunMode",storage.ElectroRunMode);
-  i += nvs.putUChar("ElectroRunTime",storage.ElectroRuntime);
-  i += nvs.putBool("ElectrolyseMode",storage.ElectrolyseMode);
-  i += nvs.putBool("pHAutoMode",storage.pHAutoMode);
-  i += nvs.putBool("OrpAutoMode",storage.OrpAutoMode);
-  i += nvs.putBool("Lang_Locale",storage.Lang_Locale); 
-  i += nvs.putUInt("MQTT_IP",storage.MQTT_IP); 
-  i += nvs.putUInt("MQTT_PORT",storage.MQTT_PORT); 
-  i += nvs.putString("MQTT_LOGIN",storage.MQTT_LOGIN); 
-  i += nvs.putString("MQTT_PASS",storage.MQTT_PASS); 
-  i += nvs.putString("MQTT_ID",storage.MQTT_ID); 
-  i += nvs.putString("MQTT_TOPIC",storage.MQTT_TOPIC);
-  i += nvs.putString("SMTP_SERVER",storage.SMTP_SERVER); 
-  i += nvs.putUInt("SMTP_PORT",storage.SMTP_PORT); 
-  i += nvs.putString("SMTP_LOGIN",storage.SMTP_LOGIN); 
-  i += nvs.putString("SMTP_PASS",storage.SMTP_PASS); 
-  i += nvs.putString("SMTP_SENDER",storage.SMTP_SENDER); 
-  i += nvs.putString("SMTP_RECIPIENT",storage.SMTP_RECIPIENT); 
-  i += nvs.putBool("BuzzerOn",storage.BuzzerOn);
-
-  i += nvs.putBytes("PumpsConf", (byte*)(&storage.PumpsConfig), sizeof(storage.PumpsConfig));
-
-  nvs.end();
-
-  Debug.print(DBG_INFO,"Bytes saved: %d / %d\n",i,sizeof(storage));
-  return (i == sizeof(storage)) ;
-
-}
-
-bool savePumpsConf()
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putBytes("PumpsConf", (byte*)(&storage.PumpsConfig), sizeof(storage.PumpsConfig));
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d (freeentries %d)\n",i,whatsLeft);
-  return(i == sizeof(storage.PumpsConfig));
-}
-
-// functions to save any type of parameter (4 overloads with same name but different arguments)
-uint8_t loadParam(const char* key, uint8_t val)
-{
-  nvs.begin("PoolMaster",false);
-  return nvs.getUChar(key,val);
-}
-
-bool loadParam(const char* key, bool val)
-{
-  nvs.begin("PoolMaster",false);
-  return nvs.getBool(key,val);
-}
-
-bool saveParam(const char* key, uint8_t val)
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putUChar(key,val);
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d / %s = %d (freeentries %d)\n",i,key, val,whatsLeft);
-  return(i == sizeof(val));
-}
-
-bool saveParam(const char* key, bool val)
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putBool(key,val);
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d / %s = %d (freeentries %d)\n",i,key, val,whatsLeft);
-  return(i == sizeof(val));
-}
-
-bool saveParam(const char* key, unsigned long val)
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putULong(key,val);
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d / %s = %lu (freeentries %d)\n",i,key, val,whatsLeft);
-
-  return(i == sizeof(val));
-}
-
-bool saveParam(const char* key, double val)
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putDouble(key,val);
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d / %s = %e (freeentries %d)\n",i,key, val,whatsLeft);
-  return(i == sizeof(val));
-}
-
-bool saveParam(const char* key, u_int val)
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putUInt(key,val);
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d / %s = %d (freeentries %d)\n",i,key, val,whatsLeft);
-  return(i == sizeof(val));
-}
-
-bool saveParam(const char* key,char* val)
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putString(key,val);
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d / %s = %s (freeentries %d)\n",i,key, val,whatsLeft);
-  return(i == sizeof(val));
-}
-
-bool saveParam(const char* key,IPAddress val)
-{
-  nvs.begin("PoolMaster",false);
-  size_t i = nvs.putUInt(key,val);
-  size_t whatsLeft = nvs.freeEntries();
-  Debug.print(DBG_DEBUG,"Bytes saved: %d / %s = %s (freeentries %d)\n",i,key, val.toString().c_str(),whatsLeft);
-  return(i == sizeof(val));
-}
-
+}*/
 //Compute free RAM
 //useful to check if it does not shrink over time
 int freeRam () {
@@ -972,11 +753,3 @@ void loop()
   vTaskDelete(nullptr);
 }
 
-void int_array_init(uint8_t *a, const int ct, ...) {
-  va_list args;
-  va_start(args, ct);
-  for(int i = 0; i < ct; ++i) {
-    a[i] = va_arg(args, int);
-  }
-  va_end(args);
-}
