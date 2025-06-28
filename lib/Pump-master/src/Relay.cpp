@@ -31,19 +31,19 @@ bool Relay::Enable()
     if ( xTimerIsTimerActive( tmr ) != pdFALSE )
       return false;
 
-  //Serial.printf("Enable Relay %d \n\r",!IsEnabled());
+  //Serial.printf("Enable Relay !IsEnab=%d \n\r",!IsEnabled());
   if (!IsEnabled()) 
   {
     if (operation_mode == MODE_MOMENTARY) 
     { // If relay is MOMENTARY type
       if (tmr == nullptr ) { // If timer was not properly initialized
-        Serial.printf("Non existent timer for momentary relay");
+        //Serial.printf("Non existent timer for momentary relay");
         return false;
       }
 
       // Launch timer to switch the momentary relay back off after the delay
       if( xTimerStart( tmr, 0 ) != pdPASS ) {
-        Serial.printf("Unable to launch timer for momentary relay");
+        //Serial.printf("Unable to launch timer for momentary relay");
         return false;
       }
 
@@ -64,18 +64,18 @@ bool Relay::Disable()
     if ( xTimerIsTimerActive( tmr ) != pdFALSE )
       return false;
 
-  //Serial.printf("Disable Relay %d \n\r",IsEnabled());
+  //Serial.printf("Disable Relay IsEnab=%d \n\r",IsEnabled());
   if (IsEnabled()) 
   {
     if (operation_mode == MODE_MOMENTARY) 
     { // If relay is MOMENTARY type
       if (tmr == nullptr ) { // If timer was not properly initialized
-        Serial.printf("Non existent timer for momentary relay");
+        //Serial.printf("Non existent timer for momentary relay");
         return false;
       }
       // Launch timer to switch the momentary relay back off after the delay
       if( xTimerStart( tmr, 0 ) != pdPASS ) {
-        Serial.printf("Unable to launch timer for momentary relay");
+        //Serial.printf("Unable to launch timer for momentary relay");
         return false;
       }
 
@@ -150,6 +150,43 @@ bool Relay::IsEnabled()
   }
 }
 
+
+void Relay::SavePreferences(Preferences& prefs, uint8_t pin_id)  
+{
+    PIN::SavePreferences(prefs, pin_id);
+
+    char key[15];
+    snprintf(key, sizeof(key), "d%d_om", pin_id);  // "device_X_operation_mode"
+    prefs.putBool(key, operation_mode);
+    //Serial.printf("Save preference %s = %d\r\n",key, operation_mode);
+}
+
+void Relay::LoadPreferences(Preferences& prefs, uint8_t pin_id)  
+{
+    PIN::LoadPreferences(prefs,pin_id);
+
+    char key[15];
+    bool tmp_operation_mode;
+    snprintf(key, sizeof(key), "d%d_om", pin_id);
+    tmp_operation_mode = prefs.getBool(key, operation_mode);
+    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, operation_mode);
+
+    Initialize(tmp_operation_mode);    // Initialize before changing the class variable because
+                                    // function needs to know what operation mode we change from
+    operation_mode = tmp_operation_mode;
+}
+
+void Relay::loop()
+{
+  if (shouldStartHandler && shouldStartHandler() && !IsEnabled()) {
+      Enable();
+  }
+
+  if (shouldStopHandler && shouldStopHandler() && IsEnabled()) {
+      Disable();
+  }
+};
+
 //Function overiden for derived class hierarchie but they do nothing
 void Relay::SetTankLevelPIN(uint8_t _tank_level) {}
 void Relay::SetTankFill(double _tank_fill) {}
@@ -158,7 +195,7 @@ void Relay::SetFlowRate(double _flow_rate) {}
 void Relay::SetMaxUpTime(unsigned long _max_uptime) {}
 double Relay::GetTankFill() {return 100.;}
 void Relay::ResetUpTime() {}
-void Relay::loop() {};
 void Relay::SetInterlock(PIN* _interlock) {}
+void Relay::SetInterlock(uint8_t) {}
 uint8_t Relay::GetInterlockId(void) { return NO_INTERLOCK;}
 bool Relay::IsRelay(void) {return true;}

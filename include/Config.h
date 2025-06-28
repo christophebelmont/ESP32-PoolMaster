@@ -8,7 +8,7 @@
 //#define NEXTION_V1
 #define NEXTION_V2
 
-#define DEBUG_LEVEL DBG_DEBUG     // Possible levels : NONE/ERROR/WARNING/INFO/DEBUG/VERBOSE
+#define DEBUG_LEVEL DBG_INFO     // Possible levels : NONE/ERROR/WARNING/INFO/DEBUG/VERBOSE
 
 //Version of config stored in EEPROM
 //Random value. Change this value (to any other value) to revert the config to default values
@@ -24,7 +24,7 @@
 #ifdef DEVT
   #define HOSTNAME "PoolMaster_Dev"
 #else
-  #define HOSTNAME "MonjoliVexin"
+  #define HOSTNAME "PoolMaster"
 #endif 
 
 // Mail parameters and credentials
@@ -64,9 +64,7 @@
 //Type of pH and Orp sensors acquisition :
 //INT_ADS1115 : single ended signal with internal ADS1115 ADC (default)
 //EXT_ADS1115 : differential signal with external ADS1115 ADC (Loulou74 board)
-#ifndef DEVT
-  #define EXT_ADS1115
-#endif
+//#define EXT_ADS1115
 #define INT_ADS1115_ADDR ADS1115ADDRESS
 #define EXT_ADS1115_ADDR ADS1115ADDRESS+1 // or +2 or +3 depending on board setup
 
@@ -98,6 +96,8 @@
 // can be configured at runtime
 #define PUBLISHINTERVAL 30000
 
+#define CONFIG_NVS_NAME "MasterConfig" // NVS namespace for configuration storage
+
 // Default values if nothing better is recorded at runtime
 #define POOLTOPIC "Home/Pool/"
 #define MQTTID "PoolMaster"
@@ -115,24 +115,6 @@
 
 #define SWG_MODE_ADJUST 0   // Adjust SWG production time according to the pool ORP
 #define SWG_MODE_FIXED 1    // Fixed time for SWG production (in hours)
-
-// Default values Maxi and Mini Running time for the Pumps (mn)
-#define FILLING_PUMP_MIN_UPTIME 15   // Default swimming Pool Filling Valve minimum runtime
-#define FILLING_PUMP_MAX_UPTIME 50   // Default swimming Pool Filling Valve maximum runtime
-#define PH_PUMP_MAX_UPTIME 15   // Default swimming Pool Filling Valve maximum runtime
-#define CHL_PUMP_MAX_UPTIME 40   // Default swimming Pool Filling Valve maximum runtime
-
-// Define pumps index in pump and relays table
-// Needs to correspond to Setup.cpp order of introduction in table
-#define PUMP_FILT 0
-#define PUMP_PH   1
-#define PUMP_CHL  2
-#define PUMP_ROBO 3
-#define PUMP_SWG  4
-#define PUMP_FILL 5
-#define RELA_R0   6
-#define RELA_R1   7
-
 
 //Display timeout before blanking
 //-------------------------------

@@ -24,7 +24,7 @@ extern void SetOrpPID(bool);
 extern void mqttInit(void);
 extern void mqttDisconnect(void);
 
-extern std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> server_handlers;
+extern const std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdoc)>> server_handlers;
 
 void p_Buzzer(StaticJsonDocument<250>  &_jsonsdoc);
 void p_Lang(StaticJsonDocument<250>  &_jsonsdoc);
@@ -43,6 +43,7 @@ void p_pHTank(StaticJsonDocument<250>  &_jsonsdoc);
 void p_ChlTank(StaticJsonDocument<250>  &_jsonsdoc);
 void p_WTempLow(StaticJsonDocument<250>  &_jsonsdoc);
 void p_PumpsMaxUp(StaticJsonDocument<250>  &_jsonsdoc);
+void p_PumpMaxUp(StaticJsonDocument<250>  &_jsonsdoc);
 void p_FillMinUpTime(StaticJsonDocument<250>  &_jsonsdoc);
 void p_FillMaxUpTime(StaticJsonDocument<250>  &_jsonsdoc);
 void p_OrpPIDParams(StaticJsonDocument<250>  &_jsonsdoc);
@@ -71,6 +72,7 @@ void p_PhPID(StaticJsonDocument<250>  &_jsonsdoc);
 void p_PhAutoMode(StaticJsonDocument<250>  &_jsonsdoc);
 void p_OrpPID(StaticJsonDocument<250>  &_jsonsdoc);
 void p_OrpAutoMode(StaticJsonDocument<250>  &_jsonsdoc);
+void p_FillAutoMode(StaticJsonDocument<250>  &_jsonsdoc);
 void p_Relay(StaticJsonDocument<250>  &_jsonsdoc);
 void p_Reboot(StaticJsonDocument<250>  &_jsonsdoc);
 void p_Clear(StaticJsonDocument<250>  &_jsonsdoc);
