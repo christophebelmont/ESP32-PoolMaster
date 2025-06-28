@@ -101,7 +101,7 @@ void InitWiFi(){
   Debug.print(DBG_INFO,"[WiFi] Initializing WiFi...");
   WiFi.mode(WIFI_STA);
   WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
-  WiFi.setHostname(HOSTNAME);
+  WiFi.setHostname(HOSTNAME); 
 }
 
 void connectToWiFi(){
