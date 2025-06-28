@@ -25,7 +25,7 @@ extern void lockI2C();
 extern void unlockI2C();
 extern void mqttInit(void);
 extern void mqttDisconnect(void);
-extern bool saveConfig(void);
+//extern bool saveConfig(void);
 
 // Configure Extension properties
 // ******************************
@@ -114,20 +114,21 @@ void SuperVisor_Task(void *pvParameters)
   // Check and get MQTT info from SuperVisor
   // Update MQTT only when received 
   SuperVisor_Message("GET_MQTT_TOPIC", buffer);
-  if (strlen(buffer) && (strcmp(buffer, storage.MQTT_TOPIC)) !=0) {
-      strcpy(storage.MQTT_TOPIC, buffer);
+  if (strlen(buffer) && (strcmp(buffer, PMConfig.get<const char*>(MQTT_TOPIC))) !=0) {
+      PMConfig.put<const char*>(MQTT_TOPIC, buffer);
       SuperVisor_Message("GET_MQTT_USERNAME", buffer);
-      strcpy(storage.MQTT_LOGIN, buffer);
+      PMConfig.put<const char*>(MQTT_LOGIN, buffer);
       SuperVisor_Message("GET_MQTT_PASSWORD", buffer);
-      strcpy(storage.MQTT_PASS, buffer);
+      PMConfig.put<const char*>(MQTT_PASS, buffer);
       SuperVisor_Message("GET_MQTT_PORT", buffer);
       char* out;
-      storage.MQTT_PORT = strtol(buffer, &out, 10);
+      uint32_t mqttport = strtol(buffer, &out, 10);
+      PMConfig.put<uint32_t>(MQTT_PORT, mqttport);
       SuperVisor_Message("GET_MQTT_SERVER", buffer);
       IPAddress servIP;
       servIP.fromString(buffer);
-      storage.MQTT_IP = servIP;
-      saveConfig(); // and restart 
+      PMConfig.put<uint32_t>(MQTT_IP, servIP); // Save the IP address in PMConfig
+ //     saveConfig(); // and restart 
       delay(500);
       ESP.restart();
   }
@@ -182,11 +183,11 @@ void SuperVisor_Info_Task(void *pvParameters)
   index += addInfo(buffer+index, "Wifi SSID",         WiFi.SSID().c_str());
   sprintf(buffer1, "%d", WiFi.RSSI());
   index += addInfo(buffer+index, "Wifi RSSI",         buffer1);
-  index += addInfo(buffer+index, "MQTT Topic",        storage.MQTT_TOPIC);
-  IPAddress MQTTservIP = storage.MQTT_IP;
+  index += addInfo(buffer+index, "MQTT Topic",        PMConfig.get<const char*>(MQTT_TOPIC));
+  IPAddress MQTTservIP = PMConfig.get<uint32_t>(MQTT_IP);
   sprintf(buffer1, "%s", MQTTservIP.toString().c_str());
   index += addInfo(buffer+index, "MQTT Server",  buffer1);
-  sprintf(buffer1, "%u", storage.MQTT_PORT);
+  sprintf(buffer1, "%u", PMConfig.get<uint32_t>(MQTT_PORT));
   index += addInfo(buffer+index, "MQTT Port",  buffer1);
   uptime::calculateUptime();
   sprintf(buffer1, "%dd-%02dh-%02dm-%02ds", uptime::getDays(), uptime::getHours(), uptime::getMinutes(), uptime::getSeconds());

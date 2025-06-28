@@ -158,24 +158,21 @@ void ExtensionsMqttInit()
     ExtensionsMqttClient.onUnsubscribe(onExtensionsMqttUnsubscribe);
     ExtensionsMqttClient.onMessage(onExtensionsMqttMessage);
     ExtensionsMqttClient.onPublish(onExtensionsMqttPublish);
-    ExtensionsMqttClient.setServer(storage.MQTT_IP, storage.MQTT_PORT);
-    if (strlen(storage.MQTT_LOGIN) > 0)
-        ExtensionsMqttClient.setCredentials(storage.MQTT_LOGIN, storage.MQTT_PASS);
+    ExtensionsMqttClient.setServer(PMConfig.get<uint32_t>(MQTT_IP),PMConfig.get<uint32_t>(MQTT_PORT));
+    if (strlen(PMConfig.get<const char*>(MQTT_LOGIN))>0)
+        ExtensionsMqttClient.setCredentials(PMConfig.get<const char*>(MQTT_LOGIN),PMConfig.get<const char*>(MQTT_PASS));
+   if (strlen(PMConfig.get<const char*>(MQTT_ID))>0)
+        ExtensionsMqttClient.setClientId(PMConfig.get<const char*>(MQTT_ID));
 
-    //Debug.print(DBG_INFO,"[ExtensionsMqttInit] Connect to MQTT %s, %d, %s, %s, %s %s",
-    //            storage.MQTT_IP.toString().c_str(),
-    //           storage.MQTT_PORT,storage.MQTT_LOGIN,storage.MQTT_PASS,
-    //           storage.MQTT_ID,storage.MQTT_TOPIC);
-
-    if (storage.MQTT_ID) ExtensionsMqttClient.setClientId(storage.MQTT_ID);
     ExtensionsMqttClient.connect();
     //Debug.print(DBG_INFO, "[ExtensionsMqttInit] Connect to MQTT rc=%d", ExtensionsMqttClient.state());
 }
 
 char *ExtensionsCreateMQTTTopic(const char *t1, const char *t2)
-{
-    char *topic = (char *)malloc(strlen(storage.MQTT_TOPIC) + strlen(t1) + strlen(t2) + 1);
-    sprintf(topic, "%s/%s%s", storage.MQTT_TOPIC, t1, t2);
+{   
+    const char *thetopic = PMConfig.get<const char*>(MQTT_TOPIC);
+    char *topic = (char*)malloc(strlen(thetopic) + strlen(t1) + strlen(t2) + 1);
+    sprintf(topic, "%s/%s%s", thetopic, t1, t2);
     return topic;
 }
 void ExtensionsPublishTopic(char *topic, JsonDocument &root)

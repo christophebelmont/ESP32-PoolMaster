@@ -120,7 +120,7 @@ void TFAVenice_RF433T_Task(void *pvParameters)
 // debug
 // #define TFA_CHANNEL 0x00         // TFA is using channel 1 of 8 (0-7)
 #define TFA_CHANNEL 0x03
-storage.WaterTemp = 1234;
+double watertemp = PMData.WaterTemp;
 // debug
     
     uint8_t data[30]  = { 0 };// for (int i=0; i<30; i++) data[i] = 0x0;
@@ -145,7 +145,7 @@ storage.WaterTemp = 1234;
     - H: Humidity (8 bits)
     - M: Message integrity check LFSR Digest-8, gen 0x98, key 0x3e, init 0x64 */
 
-    unsigned int temp_raw = (((storage.WaterTemp / 100.0 * 9 / 5) + 32) * 10 ) + 400;
+    unsigned int temp_raw = (((watertemp / 100.0 * 9 / 5) + 32) * 10 ) + 400;
     seq[0] = 0x46;             // 0x46 or 0x45 for F007TH/F012TH/F016TH, mine is 0x46
     seq[1] = 0x41;             // random id
     seq[2] = 0x00;             // all 0 so Battery=0 (OK), 
