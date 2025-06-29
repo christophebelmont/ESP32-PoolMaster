@@ -17,7 +17,7 @@ const char _DELIMITER_[] = {0xEA,0xEA,0xEA}; // ΩΩΩ
 
 ExtensionStruct mySuperVisor      = {0};
 ExtensionStruct mySuperVisor_Info = {0};
-uint8_t StatusLEDs = 0;
+//uint8_t StatusLEDs = 0;
 
 // External functions
 extern void ExtensionsPublishTopic(char*, JsonDocument&);
@@ -100,6 +100,7 @@ void SuperVisor_Task(void *pvParameters)
   }
   
   if (restartwifi) {
+  Debug.print(DBG_INFO,"===== restartwifi ");
     WiFi.disconnect();
     WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
     if (strlen(newHostname)) WiFi.setHostname(newHostname);
@@ -163,26 +164,54 @@ ExtensionStruct SuperVisor_Init(const char *name, int IO)
     return mySuperVisor;
 }
 
+
 static int addInfo(char *dest, const char* key, const char *value)
 {
   sprintf(dest, "%s=%s%c", key, value, _DELIMITER_[0]);
   return strlen(dest);
 }
 
+static int addInfo(char *dest, const char* key, uint8_t value)
+{
+  sprintf(dest, "%s=%d%c", key, value, _DELIMITER_[0]);
+  return strlen(dest);
+}
+
+static int addInfo(char *dest, const char* key, uint32_t value)
+{
+  sprintf(dest, "%s=%d%c", key, value, _DELIMITER_[0]);
+  return strlen(dest);
+}
+
+static int addInfo(char *dest, const char* key, int value)
+{
+  sprintf(dest, "%s=%d%c", key, value, _DELIMITER_[0]);
+  return strlen(dest);
+}
+static int addInfo(char *dest, const char* key, bool value)
+{
+  value &= 1;
+  if (value) 
+        sprintf(dest, "%s=*%c", key, _DELIMITER_[0]);
+  else  sprintf(dest, "%s=_%c", key, _DELIMITER_[0]);
+  return strlen(dest);
+}
+
+
 void SuperVisor_Info_Task(void *pvParameters)
 {
   extern String Firmw;
   char buffer[1024]={0};
+  char buffer1[32];
   int index=0;
-  char buffer1[25];
+
   index += addInfo(buffer+index, "Firmware",          Firmw.c_str());
   index += addInfo(buffer+index, "Display Firmware",  TFT_FIRMW);
   index += addInfo(buffer+index, "Hostname",          WiFi.getHostname());
   index += addInfo(buffer+index, "IP Address",        WiFi.localIP().toString().c_str());
   index += addInfo(buffer+index, "MAC Address",       WiFi.macAddress().c_str());
   index += addInfo(buffer+index, "Wifi SSID",         WiFi.SSID().c_str());
-  sprintf(buffer1, "%d", WiFi.RSSI());
-  index += addInfo(buffer+index, "Wifi RSSI",         buffer1);
+  index += addInfo(buffer+index, "Wifi RSSI",         WiFi.RSSI());
   index += addInfo(buffer+index, "MQTT Topic",        PMConfig.get<const char*>(MQTT_TOPIC));
   IPAddress MQTTservIP = PMConfig.get<uint32_t>(MQTT_IP);
   sprintf(buffer1, "%s", MQTTservIP.toString().c_str());
@@ -193,12 +222,9 @@ void SuperVisor_Info_Task(void *pvParameters)
   sprintf(buffer1, "%dd-%02dh-%02dm-%02ds", uptime::getDays(), uptime::getHours(), uptime::getMinutes(), uptime::getSeconds());
   index += addInfo(buffer+index, "Uptime",            buffer1);
   index += addInfo(buffer+index, "Chip Model",        ESP.getChipModel());
-  sprintf(buffer1, "%d", ESP.getFlashChipSize());
-  index += addInfo(buffer+index, "Flash Size",        buffer1);
-  sprintf(buffer1, "%d", ESP.getCpuFreqMHz());
-  index += addInfo(buffer+index, "CPU Freq (Mhz)",    buffer1);
-  sprintf(buffer1, "%d", ESP.getChipCores());
-  index += addInfo(buffer+index, "CPU Cores",         buffer1);
+  index += addInfo(buffer+index, "Flash Size",        ESP.getFlashChipSize());
+  index += addInfo(buffer+index, "CPU Freq (Mhz)",    ESP.getCpuFreqMHz());
+  index += addInfo(buffer+index, "CPU Cores",         ESP.getChipCores());
   dtostrf(ESP.getHeapSize() / 1024.0, 3, 3, buffer1);
   index += addInfo(buffer+index, "HEAP size (KB)",    buffer1);
   dtostrf(ESP.getFreeHeap() / 1024.0, 3, 3, buffer1);
@@ -206,6 +232,7 @@ void SuperVisor_Info_Task(void *pvParameters)
   dtostrf(ESP.getMaxAllocHeap() / 1024.0, 3, 3, buffer1);
   index += addInfo(buffer+index, "HEAP maxAlloc",     buffer1);
 
+  /* useless now
   // send LED status to SuperVisor
   static const char *bit_rep[16] = {
     [ 0] = "....", [ 1] = "...*", [ 2] = "..*.", [ 3] = "..**",
@@ -219,6 +246,20 @@ void SuperVisor_Info_Task(void *pvParameters)
   part2     |= (StatusLEDs & 0x10) >> 1;
   sprintf(buffer1, "%s%s", bit_rep[part2], bit_rep[part1]);
   index += addInfo(buffer+index, "LED",             buffer1);
+  */
+
+  // send Diag Status to SuperVisor
+  index += addInfo(buffer+index, "Auto Mode",         (bool)PMConfig.get<bool>(AUTOMODE));
+  index += addInfo(buffer+index, "Anti Freeze",       (bool)AntiFreezeFiltering);
+  index += addInfo(buffer+index, "Filling Pump Error",(bool)FillingPump.UpTimeError);
+  index += addInfo(buffer+index, "PSI Error",         (bool)PSIError);
+  index += addInfo(buffer+index, "pH PID",            (bool)PhPID.GetMode());
+  index += addInfo(buffer+index, "Orp PID",           (bool)OrpPID.GetMode());
+  index += addInfo(buffer+index, "pH Tank Level low", (bool)!PhPump.TankLevel());
+  index += addInfo(buffer+index, "Cl Tank Level low", (bool)!ChlPump.TankLevel());
+  index += addInfo(buffer+index, "pH Pump Error",     (bool)PhPump.UpTimeError);
+  index += addInfo(buffer+index, "Cl Pump Error",     (bool)ChlPump.UpTimeError);
+  index += addInfo(buffer+index, "Pool Level low",    (bool)!PoolDeviceManager.GetDevice(DEVICE_POOL_LEVEL)->IsActive());
 
   Serial.printf("%c%s\n", _DELIMITER_[0], buffer);
 }

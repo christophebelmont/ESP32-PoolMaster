@@ -29,7 +29,7 @@ void  ExtensionsLoadSettings(void*);
 //void  ExtensionsHistoryStats(void*);
 int   ExtensionsNb(void);
 char* ExtensionsCreateMQTTTopic(const char*,const char*);
-extern uint8_t StatusLEDs;
+//extern uint8_t StatusLEDs;
 #define SANITYDELAY delay(50);
  
 #endif

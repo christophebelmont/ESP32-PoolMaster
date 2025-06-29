@@ -125,7 +125,7 @@ void reconnectToWiFi(){
 }
 
 void connectToMqtt(){
-  Debug.print(DBG_INFO,"[WiFi] Connecting to MQTT...");
+  Debug.print(DBG_INFO,"[MQTT] Connecting to MQTT...");
   mqttClient.connect();
 }
 

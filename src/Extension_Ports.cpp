@@ -291,7 +291,7 @@ void ExtensionsInit()
                 &myExtensions[i],
                 1,
                 nullptr,
-                xPortGetCoreID());
+                0); // run extextions from the other core
         }
 }
 /*

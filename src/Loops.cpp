@@ -310,10 +310,6 @@ void StatusLights(void *pvParameters)
     Debug.print(DBG_INFO,"[StatusLights] td: %d t_act: %d t_min: %d t_max: %d t_mean: %4.1f",td,t_act,t_min,t_max,t_mean);
     #endif
 
-    #ifdef _EXTENSIONS_
-    StatusLEDs = status;
-    #endif
-
     stack_mon(hwm);
     vTaskDelayUntil(&ticktime,period);
   }  
