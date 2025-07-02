@@ -167,3 +167,7 @@
                                     // the sensor value is computed from the output of the PID 
                                     // loop to reach linearly the theorical value produced by this
                                     // output after one hour
+// *************************
+// Addons on Extension Ports
+#include "Extension_Ports.h"      // Comment this line when no extensions
+// *************************
