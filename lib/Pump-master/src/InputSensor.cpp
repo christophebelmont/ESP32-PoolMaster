@@ -19,7 +19,6 @@ void InputSensor::loop() {
     currentState = IsActive();
     if(currentState != previous_state) {
       previous_state = currentState;
-      //Serial.printf("PIN %d state changed: %d (Active Level is %d)\r\n", GetPinNumber(), currentState, GetActiveLevel());
     }
 }
 
