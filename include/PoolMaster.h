@@ -31,10 +31,10 @@
 #include <InputSensor.h>          // Simple library to handle digital pins
 #include <DeviceManager.h>        // Simple library to handle group of PIN/RELAY/PUMP/INPUTSENSOR devices
 #include "ConfigManager.h"       // Configuration manager to handle NVS (Non Volatile Storage) and configuration parameters
-/*#ifdef ELEGANT_OTA
+#ifdef ELEGANT_OTA
 #include <ESPAsyncWebServer.h>            // Used for ElegantOTA
 #include <ElegantOTA.h>
-#endif*/
+#endif
 
 // General shared data structure
 /*struct StoreStruct
