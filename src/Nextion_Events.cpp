@@ -27,14 +27,14 @@ void Nextion_Txt_Cmd_43(u_int8_t eventLength, u_int8_t (&eventData)[10])
     char Cmd[200] = "";
     strcpy(Cmd,myNex.readStr(F(GLOBAL".vaCommand.txt")).c_str());
     xQueueSendToBack(queueIn,&Cmd,0);
-    Debug.print(DBG_INFO,"Nextion direct command 43: %s",Cmd);
+    Debug.print(DBG_DEBUG,"Nextion direct command 43: %s",Cmd);
 }
 
 // Menu command 47 or 'G'
 void Nextion_Graph_47(u_int8_t eventLength, u_int8_t (&eventData)[10])
 {
     int graphIndex = myNex.readByte();
-    Debug.print(DBG_INFO,"Nextion graph command 47: %d",graphIndex);
+    Debug.print(DBG_DEBUG,"Nextion graph command 47: %d",graphIndex);
     uint8_t _lang = PMConfig.get<uint8_t>(LANG_LOCALE);
     switch(graphIndex)
     {
@@ -62,7 +62,7 @@ void Nextion_Graph_47(u_int8_t eventLength, u_int8_t (&eventData)[10])
 // Menu command 4D or 'M'
 void Nextion_Menu_4D(u_int8_t eventLength, u_int8_t (&eventData)[10])
 {
-    Debug.print(DBG_INFO,"Received Event 4D:");
+    Debug.print(DBG_DEBUG,"Received Event 4D:");
     if(eventData[0] == 0x00) { // Main Menu
         MainMenu.Select(eventData[1]); // Select the item in the main menu
     } else if(eventData[0] == 0x01) { // Sub Menu
@@ -91,7 +91,7 @@ void Nextion_Command_53(u_int8_t eventLength, u_int8_t (&eventData)[10])
     }
 
     // Set Value Usage
-    Debug.print(DBG_INFO,"Nextion switch command 53: %d %d",SwitchIndex, eventLength, value);
+    Debug.print(DBG_DEBUG,"Nextion switch command 53: %d %d",SwitchIndex, eventLength, value);
     switch(SwitchIndex)
     {
     case ENMC_FILT_MODE:  // Filtration Mode
