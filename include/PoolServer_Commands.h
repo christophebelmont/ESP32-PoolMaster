@@ -9,14 +9,6 @@
 #include <functional>
 
 // Save Param prototypes
-extern bool savePumpsConf(void);
-extern bool saveParam(const char*,uint8_t );
-extern bool saveParam(const char*,bool );
-extern bool saveParam(const char*,unsigned long );
-extern bool saveParam(const char*,double );
-extern bool saveParam(const char*,u_int);
-extern bool saveParam(const char*,char*);
-extern bool saveParam(const char*,IPAddress);
 extern void PublishSettings(void);
 extern void mqttErrorPublish(const char*);
 extern void SetPhPID(bool);
@@ -32,6 +24,9 @@ void p_TempExt(StaticJsonDocument<250>  &_jsonsdoc);
 void p_pHCalib(StaticJsonDocument<250>  &_jsonsdoc);
 void p_OrpCalib(StaticJsonDocument<250>  &_jsonsdoc);
 void p_PSICalib(StaticJsonDocument<250>  &_jsonsdoc);
+void p_pHCoeffs(StaticJsonDocument<250>  &_jsonsdoc);
+void p_OrpCoeffs(StaticJsonDocument<250>  &_jsonsdoc);
+void p_PSICoeffs(StaticJsonDocument<250>  &_jsonsdoc);
 void p_Mode(StaticJsonDocument<250>  &_jsonsdoc);
 void p_Electrolyse(StaticJsonDocument<250>  &_jsonsdoc);
 void p_ElectrolyseMode(StaticJsonDocument<250>  &_jsonsdoc);

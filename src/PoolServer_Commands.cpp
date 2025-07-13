@@ -6,6 +6,9 @@ const std::map<std::string, std::function<void(StaticJsonDocument<250> &_jsonsdo
     {"Buzzer",          p_Buzzer         },
     {"Lang_Locale",     p_Lang           },
     {"TempExt",         p_TempExt        },
+    {"pHCoeffs",        p_pHCoeffs       },
+    {"OrpCoeffs",       p_OrpCoeffs      },
+    {"PSICoeffs",       p_PSICoeffs      }, 
     {"pHCalib",         p_pHCalib        },
     {"OrpCalib",        p_OrpCalib       },
     {"PSICalib",        p_PSICalib       },
@@ -76,6 +79,24 @@ void p_Lang(StaticJsonDocument<250>  &_jsonsdoc) {
 
 void p_TempExt(StaticJsonDocument<250>  &_jsonsdoc) {
     PMData.AirTemp = _jsonsdoc[F("TempExt")].as<float>();
+}
+
+void p_pHCoeffs(StaticJsonDocument<250>  &_jsonsdoc) {
+    PMConfig.put<double>(PHCALIBCOEFFS0, _jsonsdoc[F("pHCoeffs")][0].as<double>());
+    PMConfig.put<double>(PHCALIBCOEFFS1, _jsonsdoc[F("pHCoeffs")][1].as<double>());
+    Debug.print(DBG_DEBUG,"pHCalib Coeffs Set. Coeffs are: %10.2f, %10.2f",PMConfig.get<double>(PHCALIBCOEFFS0) ,PMConfig.get<double>(PHCALIBCOEFFS1));
+}
+
+void p_OrpCoeffs(StaticJsonDocument<250>  &_jsonsdoc) {
+    PMConfig.put<double>(ORPCALIBCOEFFS0, _jsonsdoc[F("OrpCoeffs")][0].as<double>());
+    PMConfig.put<double>(ORPCALIBCOEFFS1, _jsonsdoc[F("OrpCoeffs")][1].as<double>());
+    Debug.print(DBG_DEBUG,"OrpCalib Coeffs Set. Coeffs are: %10.2f, %10.2f",PMConfig.get<double>(ORPCALIBCOEFFS0) ,PMConfig.get<double>(ORPCALIBCOEFFS1));
+}
+
+void p_PSICoeffs(StaticJsonDocument<250>  &_jsonsdoc) {
+    PMConfig.put<double>(PSICALIBCOEFFS0, _jsonsdoc[F("PSICoeffs")][0].as<double>());
+    PMConfig.put<double>(PSICALIBCOEFFS1, _jsonsdoc[F("PSICoeffs")][1].as<double>());
+    Debug.print(DBG_DEBUG,"PSICalib Coeffs Set. Coeffs are: %10.2f, %10.2f",PMConfig.get<double>(PSICALIBCOEFFS0) ,PMConfig.get<double>(PSICALIBCOEFFS1));
 }
 
 //{"pHCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
@@ -228,7 +249,6 @@ void p_Mode(StaticJsonDocument<250>  &_jsonsdoc) {
       SetPhPID(false);
       SetOrpPID(false);
     }
-    //saveParam("AutoMode",storage.AutoMode);
     PublishSettings();
 }
 void p_Electrolyse(StaticJsonDocument<250>  &_jsonsdoc) {
@@ -582,18 +602,7 @@ void p_SMTPConfig(StaticJsonDocument<250>  &_jsonsdoc) {
     PMConfig.put<const char*>(SMTP_PASS, (const char*)_jsonsdoc[F("SMTPConfig")][3]);
     PMConfig.put<const char*>(SMTP_SENDER, (const char*)_jsonsdoc[F("SMTPConfig")][4]);
     PMConfig.put<const char*>(SMTP_RECIPIENT, (const char*)_jsonsdoc[F("SMTPConfig")][5]);
-    /*strcpy(storage.SMTP_SERVER,_jsonsdoc[F("SMTPConfig")][0]);
-    storage.SMTP_PORT = (uint)_jsonsdoc[F("SMTPConfig")][1];
-    strcpy(storage.SMTP_LOGIN,_jsonsdoc[F("SMTPConfig")][2]);
-    strcpy(storage.SMTP_PASS,_jsonsdoc[F("SMTPConfig")][3]);
-    strcpy(storage.SMTP_SENDER,_jsonsdoc[F("SMTPConfig")][4]);
-    strcpy(storage.SMTP_RECIPIENT,_jsonsdoc[F("SMTPConfig")][5]);
-    saveParam("SMTP_SERVER",storage.SMTP_SERVER);
-    saveParam("SMTP_PORT",storage.SMTP_PORT);
-    saveParam("SMTP_LOGIN",storage.SMTP_LOGIN);
-    saveParam("SMTP_PASS",storage.SMTP_PASS);
-    saveParam("SMTP_SENDER",storage.SMTP_SENDER);
-    saveParam("SMTP_RECIPIENT",storage.SMTP_RECIPIENT);*/
+
 }
 void p_PINConfig(StaticJsonDocument<250>  &_jsonsdoc) {
     // Format of message is {"PINConfig":[index, pin_number, active_level, relay_operation_mode, interlock_id]}
