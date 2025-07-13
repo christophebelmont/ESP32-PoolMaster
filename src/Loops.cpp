@@ -81,7 +81,7 @@ void AnalogPoll(void *pvParameters)
     lockI2C();
     adc_ext.update();
 
-    /*if(adc_ext.ready()){                              // all conversions done ?
+    if(adc_ext.ready()){                              // all conversions done ?
       // As an int is 32 bits long for ESP32 and as the ADS1115 is wired in differential, we have to manage
       // negative voltage as follow
       orp_sensor_value = adc_ext.readFilter(0);
@@ -100,7 +100,7 @@ void AnalogPoll(void *pvParameters)
 
       Debug.print(DBG_DEBUG,"pH: %5.0f - %4.2f - ORP: %5.0f - %3.0fmV - PSI: %5.0f - %4.2fBar\r",
         ph_sensor_value,PMData.PhValue,orp_sensor_value,PMData.OrpValue,psi_sensor_value,PMData.PSIValue);
-    }*/
+    }
     
     adc_int.update();
 
@@ -490,12 +490,12 @@ void TempInit()
       DS18B20_W[0],DS18B20_W[1],DS18B20_W[2],DS18B20_W[3],
       DS18B20_W[4],DS18B20_W[5],DS18B20_W[6],DS18B20_W[7]);
     Debug.print(DBG_INFO,"%s",buf);
-    /*Serial.printf("DS18B20_W: ");
+    Serial.printf("DS18B20_W: ");
     for(uint8_t i=0;i<8;i++){
       Serial.printf("%02x",DS18B20_W[i]);
       if(i<7) Serial.print(":");
         else Serial.printf("\r\n");
-    }*/
+    }
   }  
   if (!sensors_A.getAddress(DS18B20_A, 0)) 
   {
@@ -507,12 +507,12 @@ void TempInit()
       DS18B20_A[0],DS18B20_A[1],DS18B20_A[2],DS18B20_A[3],
       DS18B20_A[4],DS18B20_A[5],DS18B20_A[6],DS18B20_A[7]);
     Debug.print(DBG_INFO,"%s",buf);
-    /*Serial.printf("DS18B20_A: ");
+    Serial.printf("DS18B20_A: ");
     for(uint8_t i=0;i<8;i++){
       Serial.printf("%02x",DS18B20_A[i]);
       if(i<7) Serial.print(":");
         else Serial.printf("\r\n");
-    }*/
+    }
   } 
 
   if(!error) 
