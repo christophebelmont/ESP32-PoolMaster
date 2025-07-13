@@ -5,6 +5,7 @@
         "thread": "cpp",
         "random": "cpp",
         "*.tcc": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "memory": "cpp"
     }
 }
