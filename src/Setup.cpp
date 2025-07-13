@@ -149,11 +149,6 @@ void SetOrpPID(bool);
 int  freeRam (void);
 void AnalogInit(void);
 void TempInit(void);
-//uint8_t loadParam(const char*, uint8_t);
-//bool loadParam(const char* ,bool);
-//bool saveParam(const char*,uint8_t );
-//bool saveParam(const char*,bool );
-//bool savePumpsConf();
 unsigned stack_hwm();
 void stack_mon(UBaseType_t&);
 void info();
@@ -527,13 +522,11 @@ void setup()
     app_cpu
   );
 
-/*#ifdef ELEGANT_OTA
+#ifdef ELEGANT_OTA
 // ELEGANTOTA Configuration
-  //server.on("/", []() {
-  //  server.send(200, "text/plain", "NA");
-  //});
-
-
+  server.on("/", []() {
+  server.send(200, "text/plain", "NA");
+  });
   ElegantOTA.begin(&server);    // Start ElegantOTA
   ElegantOTA.onStart(onOTAStart);
   ElegantOTA.onProgress(onOTAProgress);
@@ -544,7 +537,7 @@ void setup()
 #ifdef ELEGANT_OTA_AUTH
   ElegantOTA.setAuth(ELEGANT_OTA_USERNAME, ELEGANT_OTA_PASSWORD);
 #endif
-#endif*/
+#endif
 
   // Initialize OTA (On The Air update)
   //-----------------------------------
@@ -586,34 +579,8 @@ void setup()
   startTasks = true;
 
   delay(1000);          // wait for tasks to start
-
 }
 
-/*
-void onOTAStart() {
-  // Log when OTA has started
-  Debug.print(DBG_WARNING,"OTA update started!");
-  // <Add your own code here>
-}
-
-void onOTAProgress(size_t current, size_t final) {
-  esp_task_wdt_reset();           // reset Watchdog as upload may last some time...
-  // Log every 1 second
-  if (millis() - ota_progress_millis > 1000) {
-    ota_progress_millis = millis();
-    Debug.print(DBG_INFO,"OTA Progress Current: %u bytes, Final: %u bytes", current, final);
-  }
-}
-
-void onOTAEnd(bool success) {
-  // Log when OTA has finished
-  if (success) {
-    Debug.print(DBG_INFO,"OTA update finished successfully!");
-  } else {
-    Debug.print(DBG_ERROR,"There was an error during OTA update!");
-  }
-  // <Add your own code here>
-}*/
 //Compute free RAM
 //useful to check if it does not shrink over time
 int freeRam () {
@@ -655,10 +622,8 @@ void StartTime(){
   int retry = 0;
   const int retry_count = 15;
   while(sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && ++retry < retry_count){
-    //Serial.print(".");
     vTaskDelay(2000 / portTICK_PERIOD_MS);
   }
-  //Serial.println("");
   Debug.print(DBG_INFO,"NTP configured");
 }
 
