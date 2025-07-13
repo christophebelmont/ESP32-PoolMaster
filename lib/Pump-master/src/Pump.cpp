@@ -79,7 +79,6 @@ u_int8_t Pump::Start(bool _resetUpTime)
 //Switch pump OFF
 bool Pump::Stop()
 {
-  //Serial.printf("Stopping %s IsRun=%d\n\r",pin_name,IsRunning());
   if(IsRunning())
   {
     if (!this->Relay::Disable())
@@ -245,32 +244,24 @@ void Pump::SavePreferences(Preferences& prefs, uint8_t pin_id)  {
 
     snprintf(key, sizeof(key), "d%d_fr", pin_id);  // "device_X_flowrate"
     prefs.putDouble(key, flowrate);
-    //Serial.printf("Save preference %s = %d\r\n",key, flowrate);
-
+  
     snprintf(key, sizeof(key), "d%d_tv", pin_id);  // "device_X_tankvolume"
     prefs.putDouble(key, tankvolume);
-    //Serial.printf("Save preference %s = %d\r\n",key, tankvolume);
-
+  
     snprintf(key, sizeof(key), "d%d_tf", pin_id);  // "device_X_tankfill"
     prefs.putDouble(key, tankfill);
-    //Serial.printf("Save preference %s = %d\r\n",key, tankfill);
-
+  
     snprintf(key, sizeof(key), "d%d_tl", pin_id);  // "device_X_tanklevelpin"
     prefs.putUChar(key, tank_level_pin);
-    //Serial.printf("Save preference %s = %d\r\n",key, tank_level_pin);
-
+  
     snprintf(key, sizeof(key), "d%d_il", pin_id);  // "device_X_interlockid"
     prefs.putUChar(key, interlock_pin_id);
-    //Serial.printf("Save preference %s = %d\r\n",key, interlock_pin_id);
-
+  
     snprintf(key, sizeof(key), "d%d_mu", pin_id);  // "device_X_maxutime"
     prefs.putULong(key, MaxUpTime);
-    //Serial.printf("Save preference %s = %d\r\n",key, MaxUpTime);
-
+  
     snprintf(key, sizeof(key), "d%d_mi", pin_id);  // "device_X_minutime"
     prefs.putULong(key, MinUpTime);
-    //Serial.printf("Save preference %s = %d\r\n",key, MinUpTime);
-
   }
 
 void Pump::LoadPreferences(Preferences& prefs, uint8_t pin_id)  {
@@ -281,30 +272,23 @@ void Pump::LoadPreferences(Preferences& prefs, uint8_t pin_id)  {
 
     snprintf(key, sizeof(key), "d%d_fr", pin_id);
     flowrate = prefs.getDouble(key, flowrate);
-    Serial.printf("[%d] %s %s = %lf\r\n",pin_id,pin_name,key, flowrate);
 
     snprintf(key, sizeof(key), "d%d_tv", pin_id );
     tankvolume = prefs.getDouble(key, tankvolume);
-    Serial.printf("[%d] %s %s = %lf\r\n",pin_id,pin_name,key, tankvolume);
 
     snprintf(key, sizeof(key), "d%d_tf", pin_id);
     tankfill = prefs.getDouble(key, tankfill);
-    Serial.printf("[%d] %s %s = %lf\r\n",pin_id,pin_name,key, tankfill);
 
     snprintf(key, sizeof(key), "d%d_tl", pin_id);
     tank_level_pin = prefs.getUChar(key, tank_level_pin);
-    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, tank_level_pin);
 
     snprintf(key, sizeof(key), "d%d_il", pin_id);
     interlock_pin_id = prefs.getUChar(key, interlock_pin_id);
-    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, interlock_pin_id);
 
     snprintf(key, sizeof(key), "d%d_mu", pin_id);
     MaxUpTime = prefs.getULong(key, MaxUpTime);
-    Serial.printf("[%d] %s %s = %lu\r\n",pin_id,pin_name,key, MaxUpTime);
 
     snprintf(key, sizeof(key), "d%d_mi", pin_id);
     MinUpTime = prefs.getULong(key, MinUpTime);
-    Serial.printf("[%d] %s %s = %lu\r\n",pin_id,pin_name,key, MinUpTime);
   }
 

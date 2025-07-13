@@ -10,7 +10,7 @@ void Relay::Initialize(bool _operation_mode)
     // Create timer used by momentary switches to switch off after predefined period of time
     tmr = xTimerCreate("MomentaryTimer", pdMS_TO_TICKS(momentary_delay), pdFALSE, static_cast<void*>(this) , CallBackTimer);
     if (tmr == nullptr ) {
-        Serial.printf("Unable to create timer for momentary relay");
+        ("Unable to create timer for momentary relay");
     }
     this->PIN::Disable();  // Disable the port if it was on before
   } else if ((_operation_mode == MODE_LATCHING) && (operation_mode == MODE_MOMENTARY))  // Move from momentary to standard
@@ -31,19 +31,16 @@ bool Relay::Enable()
     if ( xTimerIsTimerActive( tmr ) != pdFALSE )
       return false;
 
-  //Serial.printf("Enable Relay !IsEnab=%d \n\r",!IsEnabled());
   if (!IsEnabled()) 
   {
     if (operation_mode == MODE_MOMENTARY) 
     { // If relay is MOMENTARY type
       if (tmr == nullptr ) { // If timer was not properly initialized
-        //Serial.printf("Non existent timer for momentary relay");
         return false;
       }
 
       // Launch timer to switch the momentary relay back off after the delay
       if( xTimerStart( tmr, 0 ) != pdPASS ) {
-        //Serial.printf("Unable to launch timer for momentary relay");
         return false;
       }
 
@@ -64,18 +61,15 @@ bool Relay::Disable()
     if ( xTimerIsTimerActive( tmr ) != pdFALSE )
       return false;
 
-  //Serial.printf("Disable Relay IsEnab=%d \n\r",IsEnabled());
   if (IsEnabled()) 
   {
     if (operation_mode == MODE_MOMENTARY) 
     { // If relay is MOMENTARY type
       if (tmr == nullptr ) { // If timer was not properly initialized
-        //Serial.printf("Non existent timer for momentary relay");
         return false;
       }
       // Launch timer to switch the momentary relay back off after the delay
       if( xTimerStart( tmr, 0 ) != pdPASS ) {
-        //Serial.printf("Unable to launch timer for momentary relay");
         return false;
       }
 
@@ -158,7 +152,6 @@ void Relay::SavePreferences(Preferences& prefs, uint8_t pin_id)
     char key[15];
     snprintf(key, sizeof(key), "d%d_om", pin_id);  // "device_X_operation_mode"
     prefs.putBool(key, operation_mode);
-    //Serial.printf("Save preference %s = %d\r\n",key, operation_mode);
 }
 
 void Relay::LoadPreferences(Preferences& prefs, uint8_t pin_id)  
@@ -169,7 +162,6 @@ void Relay::LoadPreferences(Preferences& prefs, uint8_t pin_id)
     bool tmp_operation_mode;
     snprintf(key, sizeof(key), "d%d_om", pin_id);
     tmp_operation_mode = prefs.getBool(key, operation_mode);
-    Serial.printf("[%d] %s %s = %d\r\n",pin_id,pin_name,key, operation_mode);
 
     Initialize(tmp_operation_mode);    // Initialize before changing the class variable because
                                     // function needs to know what operation mode we change from
