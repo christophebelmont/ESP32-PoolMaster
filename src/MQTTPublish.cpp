@@ -11,6 +11,7 @@
 
 //Size of the buffer to store outgoing JSON messages
 #define PAYLOAD_BUFFER_LENGTH 200
+#define TOPIC_BUFFER_LENGTH 100
 
 // BitMaps with GPIO states
 static uint8_t BitMap1 = 0;
@@ -26,8 +27,8 @@ static const char* PoolTopicSet3  = "Set3";
 static const char* PoolTopicSet4  = "Set4";
 static const char* PoolTopicSet5  = "Set5";
 
-static char tempTopicSet[100];
-static char tempTopicMeas[100];
+static char tempTopicSet[TOPIC_BUFFER_LENGTH]; // Only to store the topic name for the settings
+static char tempTopicMeas[TOPIC_BUFFER_LENGTH]; // Only to store the topic name for the measures
 
 int freeRam(void);
 void stack_mon(UBaseType_t&);
@@ -316,6 +317,7 @@ void MeasuresPublish(void *pvParameters)
         //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
         //Will publish something like {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0}
         const int capacity = JSON_OBJECT_SIZE(8);
+
         StaticJsonDocument<capacity> root;
 
         root["TE"]      = PMData.AirTemp * 100;        // /!\ x100
