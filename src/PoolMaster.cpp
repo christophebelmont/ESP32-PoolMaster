@@ -19,11 +19,6 @@ SMTP_Message message;
 // Functions prototypes
 
 bool readLocalTime(void);
-bool saveParam(const char*,uint8_t );
-bool saveParam(const char*,bool );
-bool saveParam(const char*,unsigned long );
-bool saveParam(const char*,double );
-bool savePumpsConf();
 void SetPhPID(bool);
 void SetOrpPID(bool);
 void mqttErrorPublish(const char*);
@@ -92,10 +87,10 @@ void PoolMaster(void *pvParameters)
     // Handle OTA update
     ArduinoOTA.handle();
 
-/*#ifdef ELEGANT_OTA
+#ifdef ELEGANT_OTA
     //server.handleClient();
     ElegantOTA.loop();
-#endif*/
+#endif
 
     // Call pumps and relays loop function
     //for(auto equi: Pool_Equipment)
