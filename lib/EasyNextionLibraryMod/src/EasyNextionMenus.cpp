@@ -297,7 +297,6 @@ void EasyNextionMenus::WriteNextionItemAttribute(const char * _nextion_object,in
     } else {
         snprintf_P(_menu__display_cmd,sizeof(_menu__display_cmd),PSTR("%s.%s"),_nextion_object,_attribute);
     }
-    //Serial.printf("%s %d\n",_menu__display_cmd,_value);
     nextion_display->writeNum(_menu__display_cmd,_value);
 }   
 void EasyNextionMenus::WriteNextionItemAttribute(const char * _nextion_object,int _object_index,const char* _attribute,const char* _value)
@@ -308,7 +307,6 @@ void EasyNextionMenus::WriteNextionItemAttribute(const char * _nextion_object,in
     } else {
         snprintf_P(_menu__display_cmd,sizeof(_menu__display_cmd),PSTR("%s.%s"),_nextion_object,_attribute);
     }
-    //Serial.printf("%s %s\n",_menu__display_cmd,_value);
     nextion_display->writeStr(_menu__display_cmd,_value);
 }   
 
