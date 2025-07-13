@@ -127,8 +127,6 @@ public:
             const ParamEntry& entry = entries[i];
             if (entry.key == nullptr) continue;
 
-            Serial.printf("[%d] %s = ", i, entry.key);
-
             switch (entry.type) {
                 case TYPE_BOOL:
                     Serial.println(entry.value.b ? "true" : "false");
