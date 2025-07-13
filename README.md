@@ -172,6 +172,7 @@ POOLTOPIC/Meas2
 | `IO` |  Bitmap1 (see below)||
 | `IO2` | Bitmap2 (see below)||
 | `IO3` |  Bitmap3 (see below)||
+| `IO4` |  Bitmap4 (see below)||
 
 Bitmap are on/off states of various elements in the system:
 ```http
@@ -205,14 +206,27 @@ IO3
 ```
 |Bit| Parameter |  Description                |
 |-| :-------- |  :------------------------- |
-|7|  | Unused
-|6|   | Unused
+|7|  SWGErr| Salt Water Chlorine Generator Uptime error flag
+|6|   Buzzer | Buzzer status (0=off, 1=on)
 |5|   FillErr| Pool Filling pump overtime error flag
-|4|   Filling Pump| current state of Pool Filling Pump (1=on, 0=off)
+|4|   Filling Pump| current state of Pool Filling Pump (1=running, 0=stopped)
 |3|   SWGMode| current mode of Salt Water Chlorine Generator (0=no SWG, 1=SWG active)
 |2|   SWGState|current state of Salt Water Chlorine Generator (0=off, 1=on)
 |1|   pHAutoMode| pH automation and regulation mode (0=manual, 1=automatic)
 |0|   OrpAutoMode| Orp automation and regulation mode (0=manual, 1=PID active)
+
+IO4
+```
+|Bit| Parameter |  Description                |
+|-| :-------- |  :------------------------- |
+|7|  | Unused
+|6|   | Unused
+|5|   | Unused
+|4|   | Unused
+|3|   | Unused
+|2|   | Unused
+|1|   | Unused
+|0|   SWGRunMode| Current Salt Water Chlorine Generator Run Mode (0=timed, 1=regulated)
 
 In addition the system published on-demand settings :
 ```http
