@@ -14,6 +14,17 @@
 //Random value. Change this value (to any other value) to revert the config to default values
 #define CONFIG_VERSION 70
 
+// If you need to force network parameters (configuration with no screen)
+#define FORCE_NETWORK_PARAMS
+#ifdef FORCE_NETWORK_PARAMS
+  #define FWIFI_NETWORK "<WIFI_SSID>"
+  #define FWIFI_PASSWORD "<WIFI_PWD>"
+  #define FMQTT_SERVER "<MQTT_SERVER_IP>"
+  #define FMQTT_PORT 1883
+  #define FMQTT_LOGIN "<MQTT_LOGIN>"
+  #define FMQTT_PASS "<MQTT_PWD>"
+#endif
+
 // Compile on development environment or production (if not defined)
 //#define DEVT // Value defined in platformio.ini
 

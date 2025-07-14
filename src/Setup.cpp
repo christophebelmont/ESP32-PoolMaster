@@ -346,7 +346,6 @@ void setup()
   WiFi.onEvent(WiFiEvent);
   initTimers();
   InitWiFi();
-  //ScanWiFiNetworks();
   connectToWiFi();
 
   delay(500);    // let task start-up and wait for connection

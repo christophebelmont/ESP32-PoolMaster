@@ -72,10 +72,17 @@ void mqttInit() {
   snprintf(PoolTopicStatus,sizeof(PoolTopicStatus),"%s/%s",PMConfig.get<const char*>(MQTT_TOPIC),TopicStatus);
   remove_duplicates_slash(PoolTopicStatus);
   mqttClient.setWill(PoolTopicStatus,1,true,"{\"PoolMaster Online\":0}");
+  #ifdef FORCE_NETWORK_PARAMS
+  mqttClient.setServer(FMQTT_SERVER,FMQTT_PORT);
+  if(strlen(FMQTT_LOGIN)>0) {
+    mqttClient.setCredentials(FMQTT_LOGIN,FMQTT_PASS);
+  }
+  #else
   mqttClient.setServer(PMConfig.get<uint32_t>(MQTT_IP),PMConfig.get<uint32_t>(MQTT_PORT));
   if(strlen(PMConfig.get<const char*>(MQTT_LOGIN))>0) {
     mqttClient.setCredentials(PMConfig.get<const char*>(MQTT_LOGIN),PMConfig.get<const char*>(MQTT_PASS));
   }
+  #endif
   mqttClient.setClientId(PMConfig.get<const char*>(MQTT_ID));
 }
 
@@ -105,7 +112,9 @@ void InitWiFi(){
 }
 
 void connectToWiFi(){
-  //WiFi.begin(WIFI_NETWORK, WIFI_PASSWORD); /
+  #ifdef FORCE_NETWORK_PARAMS
+  WiFi.begin(FWIFI_NETWORK, FWIFI_PASSWORD);
+  #endif
   Wifi_Activated=true;
   WiFi.begin(); // We must reconnect to the latest used network. Or change the network via Nextion Screen
 }
@@ -125,7 +134,7 @@ void reconnectToWiFi(){
 }
 
 void connectToMqtt(){
-  Debug.print(DBG_INFO,"[WiFi] Connecting to MQTT...");
+  Debug.print(DBG_INFO,"[MQTT] Connecting to MQTT...");
   mqttClient.connect();
 }
 
