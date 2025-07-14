@@ -575,11 +575,15 @@ void setup()
     app_cpu
   );
 
-/*#ifdef ELEGANT_OTA
+#ifdef _EXTENSIONS_
+  ExtensionsInit();
+#endif
+
+#ifdef ELEGANT_OTA
 // ELEGANTOTA Configuration
-  //server.on("/", []() {
-  //  server.send(200, "text/plain", "NA");
-  //});
+  server.on("/", []() {
+    server.send(200, "text/plain", "NA");
+  });
 
 
   ElegantOTA.begin(&server);    // Start ElegantOTA
@@ -592,7 +596,7 @@ void setup()
 #ifdef ELEGANT_OTA_AUTH
   ElegantOTA.setAuth(ELEGANT_OTA_USERNAME, ELEGANT_OTA_PASSWORD);
 #endif
-#endif*/
+#endif
 
   // Initialize OTA (On The Air update)
   //-----------------------------------
