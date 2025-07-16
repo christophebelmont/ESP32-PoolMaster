@@ -373,6 +373,12 @@ void setup()
   RobotPump.SetHandlers(RobotPump_StartCondition,RobotPump_StopCondition,RobotPump_StartAction,RobotPump_StopAction);
   SWGPump.SetHandlers(SWGPump_StartCondition,SWGPump_StopCondition,SWGPump_StartAction,SWGPump_StopAction);
 
+  // Level Sensor configuration
+  PoolWaterLevelSensor.setReadInterval(1000); // Read input port every second
+  PoolWaterLevelSensor.setHighThreshold(9);   // At least 9 positive readings in the time window to be considered active
+  PoolWaterLevelSensor.setTimeWindow(10000); // Time window of samples to be considered active
+  PoolWaterLevelSensor.setAnalysisFrequency(10000); // Analyze every 10 seconds
+
   // Fill DeviceManager with the list of devices
   PoolDeviceManager.AddDevice(DEVICE_FILTPUMP,&FiltrationPump);
   PoolDeviceManager.AddDevice(DEVICE_PH_PUMP,&PhPump);
