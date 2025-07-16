@@ -4,7 +4,7 @@
 
 // Choose Nextion version to Compile (only one choice possible)
 // NEXTION_V1 (default) for initial interface or blue theme interface
-// NEXTION_V2 for Nextion v5.0 them which redefines full interface and pages
+// NEXTION_V2 for Nextion v5.0 theme which redefines full interface and pages
 //#define NEXTION_V1
 #define NEXTION_V2
 
