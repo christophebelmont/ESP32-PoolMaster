@@ -64,7 +64,7 @@ modulation  = OOK_PULSE_MANCHESTER_ZEROBIT
 #include <driver/rmt.h>
 
 ExtensionStruct myTFAVenice_RF433T = {0};
-static int      tfaGPIO = 0; // disabled by default, suggest GPIO 5
+static int      tfaGPIO = 0; // disabled by default, suggest GPIO 14
 
 extern void SuperVisor_Message(const char *, char*);
 extern void PublishTopic(const char*, JsonDocument&);
@@ -81,8 +81,10 @@ void Init_RF433t()
     pinMode(tfaGPIO, OUTPUT);
     rmt_config_t config = RMT_DEFAULT_CONFIG_TX((gpio_num_t)tfaGPIO, RMT_CHANNEL_0);
     config.clk_div = 80; // input clock 80 MHz => output clk 1 MHz
+
     // config.tx_config.carrier_freq_hz = 1024;
     // config.tx_config.carrier_en = true;
+    
     ESP_ERROR_CHECK(rmt_config(&config));
     ESP_ERROR_CHECK(rmt_driver_install(config.channel, 0, 0));
     driverinstalled = true;
@@ -228,15 +230,17 @@ void TFAVenice_RF433T_Values(char* buffer)
 {
     if (tfaGPIO > 0)
         //sprintf(buffer, "GPIO=%d", tfaGPIO);
-        sprintf(buffer, "433Mhz");
+        sprintf(buffer, "F=433Mhz, G=%d T=%d", tfaGPIO, int(PMData.WaterTemp*100));
     else sprintf(buffer, "none");
 }
 
 void TFAVenicePubMQTT()
 {
     // Hey MQTT
+    return;
     DynamicJsonDocument root(1024);
     root["GPIO"] = tfaGPIO;
+    root["Send"] = int(PMData.WaterTemp*100);
     char topic[48];
     const char *roottopic = PMConfig.get<const char*>(MQTT_TOPIC);
     if (strcmp(roottopic, "") == 0) return;
@@ -255,7 +259,7 @@ void TFAVenice_RF433T_LoadSettings(void *pvParameters)
     if (tfaGPIO != newgpio) {
         tfaGPIO = newgpio;
         Init_RF433t();
-        TFAVenicePubMQTT();
+  //      TFAVenicePubMQTT();
     }
 }
 

@@ -56,7 +56,7 @@ void BME680_0x77_SaveMeasures (void *pvParameters)
     char topic[50];
     const char *roottopic = PMConfig.get<const char*>(MQTT_TOPIC);
     sprintf(topic, "%s/%s", roottopic, myBME680_0x77.name);
-    PublishTopic(topic, root);
+ //   PublishTopic(topic, root);
 }
 
 void BME680_0x77_Values(char* buffer)

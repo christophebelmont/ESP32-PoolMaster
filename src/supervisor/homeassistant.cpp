@@ -808,6 +808,7 @@ void createHAEntities()
   // Switch
   // ******
   strcpy(entitytype, "switch");
+  sprintf(commandtopic, "%s/API", roottopic);
 
   {char name[] = "Ph Pump";
   sprintf(topic, "%s/Meas2", roottopic);
@@ -1042,7 +1043,8 @@ void createHAEntities()
  // ***********
   strcpy(entitytype, "button");
   strcpy(topic, "");
-  
+  sprintf(commandtopic, "%s/API", roottopic);
+
   {char name[] = "Reboot";
   char JSEntity[] = " \
   \"payload_press\": \"{Reboot:1}\", \
@@ -1099,7 +1101,7 @@ void createHAEntities()
   
  {char name[] = "Fill Chlorine Tank";
   char JSEntity[] = " \
-  \"payload_press\": \"{\"ChlTank\":[20,100]}\", \
+  \"payload_press\": \"{ChlTank:[20,100]}\", \
   \"unique_id\": \"poolmaster_meas_refillchltank\", \
   \"icon\": \"mdi:format-color-fill\", \
   \"entity_category\": \"config\", \
@@ -1108,13 +1110,14 @@ void createHAEntities()
   
  {char name[] = "Fill pH Tank";
   char JSEntity[] = " \
-  \"payload_press\": \"{\"pHTank\":[20,100]}\", \
+  \"payload_press\": \"{pHTank:[20,100]}\", \
   \"unique_id\": \"poolmaster_meas_refillphtank\", \
   \"icon\": \"mdi:format-color-fill\", \
   \"entity_category\": \"config\", \
   ";
   createHAEntitie(entitytype, name, topic, JSEntity, JScommon, hatopic, commandtopic);}
 
+  sprintf(commandtopic, "%s/SVAPI", roottopic);
   {char name[] = "Update PoolMaster";
   char JSEntity[] = " \
   \"payload_press\": \"{ 'Update PoolMaster':'1' }\", \
@@ -1169,6 +1172,7 @@ void createHAEntities()
  // NUMBERS
  // ***********
  strcpy(entitytype, "number");
+ sprintf(commandtopic, "%s/API", roottopic);
   
  {char name[] = "Filtration Start Time (min)";
   sprintf(topic, "%s/Set1", roottopic);
@@ -1521,6 +1525,7 @@ void createHAEntities()
   ";
   createHAEntitie(entitytype, name, topic, JSEntity, JScommon, hatopic, commandtopic);}
 
+sprintf(commandtopic, "%s/SVAPI", roottopic);
  {char name[] = "WaterMeter L";
   sprintf(topic, "%s/WaterMeter", roottopic);
   char JSEntity[] = " \
@@ -1570,6 +1575,8 @@ void createHAEntities()
   // TEXT
   // ***************
   strcpy(entitytype, "text");
+  sprintf(commandtopic, "%s/SVAPI", roottopic);
+
  {char name[] = "Update Host (http)";
   sprintf(topic, "%s/SuperVisor", roottopic);
   char JSEntity[] = " \
@@ -1636,4 +1643,13 @@ void createHAEntities()
   ";
   createHAEntitie(entitytype, name, topic, JSEntity, JScommon, hatopic, commandtopic);}
 
+ sprintf(commandtopic, "%s/API", roottopic);
+ {char name[] = "JSON Command";
+  sprintf(topic, "%s", commandtopic);
+  char JSEntity[] = " \
+  \"command_template\": \"{{ value }}\", \
+  \"unique_id\": \"poolmaster_jsoncommand\", \
+  \"icon\": \"mdi:code-json\", \
+  ";
+  createHAEntitie(entitytype, name, topic, JSEntity, JScommon, hatopic, commandtopic);}
 }

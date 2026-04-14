@@ -169,3 +169,4 @@ extern bool MQTTConnection;                            // MQTT connected flag
 extern bool AntiFreezeFiltering;                       // Filtration anti freeze mode
 extern bool cleaning_done;      					   // Robot clean-up done   
 
+extern bool EXT_ADS1115;    // pH/ORP LouLou board, default = false

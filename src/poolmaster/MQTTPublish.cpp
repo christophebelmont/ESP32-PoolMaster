@@ -326,6 +326,7 @@ void MeasuresPublish(void *pvParameters)
         root["PhUpT"]   = PhPump.UpTime / 1000;
         root["ChlUpT"]  = ChlPump.UpTime / 1000;
         root["IO4"]     = BitMap4;
+        root["RFU"]     = rfu_sensor_value;
 
         snprintf(tempTopicMeas,sizeof(tempTopicMeas),"%s/%s",PMConfig.get<const char*>(MQTT_TOPIC),PoolTopicMeas1);
         remove_duplicates_slash(tempTopicMeas);

@@ -156,8 +156,8 @@ void SuperVisor_LoadSettings(void *pvParameters)
     if (strlen(newSSID))
           WiFi.begin(newSSID, newPass);
     else  WiFi.reconnect();
-    MDNS.addService("http", "tcp", 80);
-    if (strlen(newHostname)) MDNS.begin(newHostname);  
+    // MDNS.addService("http", "tcp", 80);
+    //if (strlen(newHostname)) MDNS.begin(newHostname);  
     restartwifi = false;
   }
 
@@ -377,7 +377,8 @@ void SuperVisor_Task(void *pvParameters)
   index += addInfo(buffer+index, "Water Temperature", PMData.WaterTemp);
   index += addInfo(buffer+index, "pH",                PMData.PhValue);
   index += addInfo(buffer+index, "Orp",               (int)PMData.OrpValue);
-  index += addInfo(buffer+index, "PSI",               PMData.PSIValue);
+  index += addInfo(buffer+index, "Water Pressure",    (int)(PMData.PSIValue*1000.0));
+  index += addInfo(buffer+index, "RFU",               (int)rfu_sensor_value);
 
   Serial.printf("%c%s\n", _DELIMITER_[0], buffer);
   index=0;

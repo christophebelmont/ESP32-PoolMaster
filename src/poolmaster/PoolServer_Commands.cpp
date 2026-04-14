@@ -391,8 +391,10 @@ void p_RstOrpCal(StaticJsonDocument<250>  &_jsonsdoc) {
     PublishSettings();
 }
 void p_RstPSICal(StaticJsonDocument<250>  &_jsonsdoc) {
-    PMConfig.put<double>(PSICALIBCOEFFS0, (double)0.377923399);
-    PMConfig.put<double>(PSICALIBCOEFFS1, (double)-0.17634473);
+//    PMConfig.put<double>(PSICALIBCOEFFS0, (double)0.377923399);
+//    PMConfig.put<double>(PSICALIBCOEFFS1, (double)-0.17634473);
+    PMConfig.put<double>(PSICALIBCOEFFS0, (double)1.372549);
+    PMConfig.put<double>(PSICALIBCOEFFS1, (double)-0.32941);
     PublishSettings();
 }
 void p_Settings(StaticJsonDocument<250>  &_jsonsdoc) {

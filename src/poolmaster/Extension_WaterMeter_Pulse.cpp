@@ -12,10 +12,10 @@
 extern void SuperVisor_Message(const char *, char*);
 
 ExtensionStruct myWaterMeterPulse = {0};
-static double   myWaterMeterCounter = 0;
-static double   myWMLiterPerPulse   = 1.0;  // K=1 liter/pulse
-static uint32_t myWMDebounce        = 250;  // Debounce time in ms
-static int      myWMGPIO            = 0;    // disabled by default, suggest GPIO 15
+volatile double   myWaterMeterCounter = 0;
+volatile double   myWMLiterPerPulse   = 1.0;  // K=1 liter/pulse
+volatile uint32_t myWMDebounce        = 250;  // Debounce time in ms
+volatile int      myWMGPIO          = 0;    // disabled by default, suggest GPIO 15
 
 extern void PublishTopic(const char*, JsonDocument&);
 void WaterMeterPulsePubMQTT(void)
@@ -36,7 +36,7 @@ void WaterMeterPulsePubMQTT(void)
     if (strcmp(roottopic, "") == 0) return;
     if (strcmp(roottopic, "none") == 0) return;
     sprintf(topic, "%s/%s", roottopic, myWaterMeterPulse.name);
-    PublishTopic(topic, root);
+ //   PublishTopic(topic, root);
 }
 
 void WaterMeterPulseValues(char* buffer)
@@ -78,12 +78,14 @@ void WaterMeterPulseLoadSettings(void *pvParameters)
 void WaterMeterPulseTask(void *pvParameters)
 {
     if (myWMGPIO<1) return;
+}
 
-    // Debounce is managed by the loop
-    static uint8_t LastReading = HIGH;
-    static bool meterblocked = false;   // meter can stop when GPIO is at LOW level
-
-    pinMode(myWMGPIO, INPUT_PULLUP);
+volatile uint8_t LastReading = HIGH;
+volatile bool meterblocked = false;   // meter can stop when GPIO is at LOW level
+  
+void ARDUINO_ISR_ATTR WMinterrupt() {
+    if (myWMGPIO<1) return;
+    
     uint8_t Reading = digitalRead(myWMGPIO);
 
     if (Reading != LastReading) meterblocked = false; // state has changed
@@ -109,6 +111,9 @@ ExtensionStruct WaterMeterPulse_Init(char *name, int defaultIO)
     myWaterMeterPulse.SaveMeasures      = 0;
     myWaterMeterPulse.Values            = WaterMeterPulseValues;
     myWaterMeterPulse.HistoryStats      = 0;
+    
+    pinMode(myWMGPIO, INPUT_PULLDOWN);
+    attachInterrupt(myWMGPIO, WMinterrupt, CHANGE);
 
     return myWaterMeterPulse;
 }

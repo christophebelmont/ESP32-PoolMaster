@@ -42,7 +42,7 @@ void SHT40_0x44_SaveMeasures (void *pvParameters)
     char topic[50];
     const char *roottopic = PMConfig.get<const char*>(MQTT_TOPIC);
     sprintf(topic, "%s/%s", roottopic, mySHT40_0x44.name);
-    PublishTopic(topic, root);
+ //   PublishTopic(topic, root);
 }
 
 void SHT40_0x44_Values(char* buffer)

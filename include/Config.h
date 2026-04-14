@@ -8,7 +8,8 @@
 //#define NEXTION_V1
 #define NEXTION_V2
 
-#define DEBUG_LEVEL DBG_INFO     // Possible levels : NONE/ERROR/WARNING/INFO/DEBUG/VERBOSE
+#define DEBUG_LEVEL DBG_DEBUG// Possible levels : DBG_NONE/DBG_ERROR/DBG_WARNING/DBG_INFO/DBG_DEBUG/DBG_VERBOSE
+//#define DEBUG_LEVEL DBG_INFO// Possible levels : DBG_NONE/DBG_ERROR/DBG_WARNING/DBG_INFO/DBG_DEBUG/DBG_VERBOSE
 
 //Version of config stored in EEPROM
 //Random value. Change this value (to any other value) to revert the config to default values
@@ -64,7 +65,7 @@
 //Type of pH and Orp sensors acquisition :
 //INT_ADS1115 : single ended signal with internal ADS1115 ADC (default)
 //EXT_ADS1115 : differential signal with external ADS1115 ADC (Loulou74 board)
-//#define EXT_ADS1115
+
 #define INT_ADS1115_ADDR ADS1115ADDRESS
 #define EXT_ADS1115_ADDR ADS1115ADDRESS+1 // or +2 or +3 depending on board setup
 

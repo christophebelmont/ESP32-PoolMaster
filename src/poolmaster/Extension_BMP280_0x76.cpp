@@ -42,7 +42,7 @@ void BMP280_0x76_SaveMeasures (void *pvParameters)
     char topic[50];
     const char *roottopic = PMConfig.get<const char*>(MQTT_TOPIC);
     sprintf(topic, "%s/%s", roottopic, myBMP280_0x76.name);
-    PublishTopic(topic, root);
+ //   PublishTopic(topic, root);
 }
 
 void BMP280_0x76_Values(char* buffer)

@@ -3,7 +3,6 @@
 #include "Config.h"
 #include "PoolMaster.h"
 
-
 #if defined(_EXTENSIONS_)
 
 // *************************
@@ -27,6 +26,7 @@
 #include "Extension_BME680_0x77.h"
 #include "Extension_BMP280_0x76.h" 
 #include "Extension_SHT40_0x44.h"
+#include "Extension_INA226_0x40.h"
 
 #define _GPIO_TFA_RF433T_        0 // disable by default, suggest GPIO 5  - Water Temperature broadcasted to TFA 433Mhz receiver
 #define _GPIO_WATERMETER_PULSE_  0 // disable by default, suggest GPIO 15 - Count WaterMeter pulse from external reader.
@@ -38,8 +38,10 @@ struct ListExtensions knownI2C[] = {
     {"SUPERVISOR",  0, SUPERVISOR_I2C_Address},  // 0x07
     {"PCF8574",     0, 0x20 },  // PoolMaster StatusLights
     {"PCF8574A",    0, 0x38 },  // PoolMaster StatusLights
+    {"INA226",      0, 0x40 },  // PowerMeter
     {"SHT40",       0, 0x44 },  // ENV IV M5Stack = SHT40 + BMP280
-    {"ADS1115",     0, 0x48 },  // PoolMaster AnalogPoll
+    {"ADS1115",     0, INT_ADS1115_ADDR },  // PoolMaster AnalogPoll
+    {"EXT_ADS1115", 0, EXT_ADS1115_ADDR },  // PoolMaster Loulou74 board
     {"BMP280",      0, 0x76 },  // ENV IV M5Stack = SHT40 + BMP280
     {"BME680",      0, 0x77 },  // ENV Pro M5Stack
 };
@@ -56,7 +58,7 @@ struct ListExtensions myListExtensions[] = {
     {"BME680",      BME680_0x77_Init,       _I2C_   , 0, 2250},
     {"WaterMeter",  WaterMeterPulse_Init,   _GPIO_WATERMETER_PULSE_, 2250, 1800 },
     {"TFA_Venice",  TFAVenice_RF433T_Init,  _GPIO_TFA_RF433T_ ,      2250, 2048 },
-
+    {"INA226",      INA226_0x40_Init,       _I2C_   , 0, 2250},
    // Futur extensions
 //    {"MiLight",        MiLight_Init,           _I2C_ },
 //    {"PoolCover",      PoolCover_Init,         _OTHER_ },

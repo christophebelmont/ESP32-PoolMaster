@@ -14,13 +14,12 @@ static DeviceAddress DS18B20_A = { 0x28, 0xB0, 0x70, 0x75, 0xD0, 0x01, 0x3C, 0x9
 
 // Setup an ADS1115 instance for analog measurements
 static ADS1115Scanner adc_int(ADS1115ADDRESS);  // Address 0x48 is the default
-#ifdef EXT_ADS1115
-static ADS1115Scanner adc_ext(EXT_ADS1115_ADDR);
-#endif
+static ADS1115Scanner adc_ext(EXT_ADS1115_ADDR); // 0x49
 
 static float ph_sensor_value;     // pH sensor current value
 static float orp_sensor_value;    // ORP sensor current value
 static float psi_sensor_value;    // PSI sensor current value
+float rfu_sensor_value = 0.0;     // RFU sensor current value
 
 // Signal filtering library sample buffers
 static RunningMedian samples_WTemp = RunningMedian(11);
@@ -48,89 +47,27 @@ void unlockI2C();
 //We have here two sections of code here of which only one will be compiled depending on the
 //configuration 
 
-#ifdef EXT_ADS1115
-//----------------------------
 void AnalogInit()
 {
-  adc_int.setSpeed(ADS1115_SPEED_16SPS);
-  adc_int.addChannel(ADS1115_CHANNEL2, ADS1115_RANGE_6144);
-  adc_int.setSamples(8);
+  if (EXT_ADS1115) {
+    adc_int.setSpeed(ADS1115_SPEED_16SPS);
+    adc_int.addChannel(ADS1115_CHANNEL2, ADS1115_RANGE_6144);
+    adc_int.setSamples(8);
 
-  adc_ext.setSpeed(ADS1115_SPEED_16SPS);
-  adc_ext.addChannel(ADS1115_CHANNEL01, ADS1115_RANGE_6144);
-  adc_ext.addChannel(ADS1115_CHANNEL23, ADS1115_RANGE_6144);
-  adc_ext.setSamples(4);
+    adc_ext.setSpeed(ADS1115_SPEED_16SPS);
+    adc_ext.addChannel(ADS1115_CHANNEL01, ADS1115_RANGE_6144);
+    adc_ext.addChannel(ADS1115_CHANNEL23, ADS1115_RANGE_6144);
+    adc_ext.setSamples(4);
+  }
+  else {
+    adc_int.setSpeed(ADS1115_SPEED_16SPS);
+    adc_int.addChannel(ADS1115_CHANNEL0, ADS1115_RANGE_6144);
+    adc_int.addChannel(ADS1115_CHANNEL1, ADS1115_RANGE_6144);
+    adc_int.addChannel(ADS1115_CHANNEL2, ADS1115_RANGE_6144);
+    adc_int.setSamples(3);
+  }
 }
 
-void AnalogPoll(void *pvParameters)
-{
-  while (!startTasks) ;
-
-  TickType_t period = PT1;  
-  TickType_t ticktime = xTaskGetTickCount(); 
-  static UBaseType_t hwm=0;
-
-  lockI2C();
-  adc_int.start();
-  adc_ext.start();
-  unlockI2C();
-  vTaskDelayUntil(&ticktime,period);
-  
-  for(;;)
-  {
-    lockI2C();
-    adc_ext.update();
-
-    /*if(adc_ext.ready()){                              // all conversions done ?
-      // As an int is 32 bits long for ESP32 and as the ADS1115 is wired in differential, we have to manage
-      // negative voltage as follow
-      orp_sensor_value = adc_ext.readFilter(0);
-      if(orp_sensor_value >= 32768) orp_sensor_value = orp_sensor_value - 65536;  // ORP sensor current value
-      ph_sensor_value = adc_ext.readFilter(1);
-      if(ph_sensor_value >= 32768) ph_sensor_value= ph_sensor_value - 65536;      // pH sensor current value
-      adc_ext.start();  
-        
-      //Ph
-      samples_Ph.add(ph_sensor_value);          // compute average of pH from center 5 measurements among 11
-      PMData.PhValue = (samples_Ph.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PHCALIBCOEFFS0) + PMConfig.get<double>(PHCALIBCOEFFS1);
-
-      //ORP
-      samples_Orp.add(orp_sensor_value);        // compute average of ORP from last 5 measurements
-      PMData.OrpValue = (samples_Orp.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(ORPCALIBCOEFFS0) + PMConfig.get<double>(ORPCALIBCOEFFS1);
-
-      Debug.print(DBG_DEBUG,"pH: %5.0f - %4.2f - ORP: %5.0f - %3.0fmV - PSI: %5.0f - %4.2fBar\r",
-        ph_sensor_value,PMData.PhValue,orp_sensor_value,PMData.OrpValue,psi_sensor_value,PMData.PSIValue);
-    }*/
-    
-    adc_int.update();
-
-    if(adc_int.ready()){
-      psi_sensor_value = adc_int.readFilter(0) ;    // psi sensor current value
-      adc_int.start();
-
-      //PSI (water pressure)
-      samples_PSI.add(psi_sensor_value);        // compute average of PSI from last 5 measurements
-      PMData.PSIValue = (samples_PSI.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PSICALIBCOEFFS0) + PMConfig.get<double>(PSICALIBCOEFFS1);
-      PMData.PSIValue = (PMData.PSIValue < 0)? 0 : PMData.PSIValue;
-    }
-    unlockI2C();
-
-    stack_mon(hwm);
-    vTaskDelayUntil(&ticktime,period);
-  }  
-}
-
-#else //EXT_ADS1115
-//-----------------
-
-void AnalogInit()
-{
-  adc_int.setSpeed(ADS1115_SPEED_16SPS);
-  adc_int.addChannel(ADS1115_CHANNEL0, ADS1115_RANGE_6144);
-  adc_int.addChannel(ADS1115_CHANNEL1, ADS1115_RANGE_6144);
-  adc_int.addChannel(ADS1115_CHANNEL2, ADS1115_RANGE_6144);
-  adc_int.setSamples(3);
-}
 
 void AnalogPoll(void *pvParameters)
 {
@@ -149,9 +86,10 @@ void AnalogPoll(void *pvParameters)
 
   lockI2C();
   adc_int.start();
+  if (EXT_ADS1115) adc_ext.start();
   unlockI2C();
   vTaskDelayUntil(&ticktime,period);
-  
+
   for(;;)
   {
     #ifdef CHRONO
@@ -160,16 +98,36 @@ void AnalogPoll(void *pvParameters)
 
     lockI2C();
     adc_int.update();
-
     if(adc_int.ready()){                              // all conversions done ?
-        orp_sensor_value = adc_int.readFilter(0) ;    // ORP sensor current value
-        ph_sensor_value  = adc_int.readFilter(1) ;    // pH sensor current value
-        psi_sensor_value = adc_int.readFilter(2) ;    // psi sensor current value
-        adc_int.start();  
-        
-        //Ph
-        samples_Ph.add(ph_sensor_value);          // compute average of pH from center 5 measurements among 11
-        PMData.PhValue = (samples_Ph.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PHCALIBCOEFFS0) + PMConfig.get<double>(PHCALIBCOEFFS1);
+        if (!EXT_ADS1115) {
+          orp_sensor_value = adc_int.readFilter(0) ;    // ORP sensor current value
+          ph_sensor_value  = adc_int.readFilter(1) ;    // pH sensor current value
+          psi_sensor_value = adc_int.readFilter(2) ;    // psi sensor current value
+          rfu_sensor_value = adc_int.readFilter(3) ;    // rfu sensor current value
+        }
+        else {
+          psi_sensor_value = adc_int.readFilter(0) ;    // psi sensor current value
+//          rfu_sensor_value = adc_int.readFilter(1) ;    // rfu sensor current value
+        }
+        adc_int.start();
+    }
+
+    if (EXT_ADS1115) {
+      adc_ext.update();
+      if (adc_ext.ready()) {
+      // As an int is 32 bits long for ESP32 and as the ADS1115 is wired in differential, we have to manage
+      // negative voltage as follow
+        orp_sensor_value = adc_ext.readFilter(0);
+        if (orp_sensor_value >= 32768) orp_sensor_value = orp_sensor_value - 65536;  // ORP sensor current value
+        ph_sensor_value = adc_ext.readFilter(1);
+        if (ph_sensor_value >= 32768) ph_sensor_value= ph_sensor_value - 65536;      // pH sensor current value
+        adc_ext.start();  
+      }
+    }
+
+    //Ph
+    samples_Ph.add(ph_sensor_value);          // compute average of pH from center 5 measurements among 11
+    PMData.PhValue = (samples_Ph.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PHCALIBCOEFFS0) + PMConfig.get<double>(PHCALIBCOEFFS1);
 
 #ifdef SIMU
         if(!init_simu){
@@ -196,10 +154,9 @@ void AnalogPoll(void *pvParameters)
             }  
         }  
 #endif
-
-        //ORP
-        samples_Orp.add(orp_sensor_value);        // compute average of ORP from last 5 measurements
-        PMData.OrpValue = (samples_Orp.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(ORPCALIBCOEFFS0) + PMConfig.get<double>(ORPCALIBCOEFFS1);
+    //ORP
+    samples_Orp.add(orp_sensor_value);        // compute average of ORP from last 5 measurements
+    PMData.OrpValue = (samples_Orp.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(ORPCALIBCOEFFS0) + PMConfig.get<double>(ORPCALIBCOEFFS1);
 
 #ifdef SIMU
         if(!init_simu){
@@ -215,14 +172,14 @@ void AnalogPoll(void *pvParameters)
         } 
 #endif
 
-        //PSI (water pressure)
-        samples_PSI.add(psi_sensor_value);        // compute average of PSI from last 5 measurements
-        PMData.PSIValue = (samples_PSI.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PSICALIBCOEFFS0) + PMConfig.get<double>(PSICALIBCOEFFS1);
-        PMData.PSIValue = (PMData.PSIValue < 0)? 0 : PMData.PSIValue;
+    //PSI (water pressure)
+    samples_PSI.add(psi_sensor_value);        // compute average of PSI from last 5 measurements
+    PMData.PSIValue = (samples_PSI.getAverage(5)*0.1875/1000.)*PMConfig.get<double>(PSICALIBCOEFFS0) + PMConfig.get<double>(PSICALIBCOEFFS1);
+    PMData.PSIValue = (PMData.PSIValue < 0)? 0 : PMData.PSIValue;
 
-        Debug.print(DBG_DEBUG,"pH: %5.0f - %4.2f - ORP: %5.0f - %3.0fmV - PSI: %5.0f - %4.2fBar\r",
-            ph_sensor_value,PMData.PhValue,orp_sensor_value,PMData.OrpValue,psi_sensor_value,PMData.PSIValue);
-    }
+    Debug.print(DBG_DEBUG,"pH: %5.0f - %4.2f - ORP: %5.0f - %3.0fmV - PSI: %5.0f - %4.2fBar - RFU: %5.3f\r",
+    ph_sensor_value,PMData.PhValue,orp_sensor_value,PMData.OrpValue,psi_sensor_value,PMData.PSIValue, rfu_sensor_value);
+
     unlockI2C();
 
     #ifdef CHRONO
@@ -238,9 +195,6 @@ void AnalogPoll(void *pvParameters)
     vTaskDelayUntil(&ticktime,period);
   }  
 }
-
-#endif //EXT_ADS1115
-//------------------
 
 void StatusLights(void *pvParameters)
 {

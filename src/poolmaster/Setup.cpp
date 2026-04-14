@@ -26,57 +26,6 @@ double ChlCumul = 0.;
 // Firmware revision
 String Firmw = FIRMW;
 
-//Settings structure and its default values
-// si pH+ : Kp=2250000.
-// si pH- : Kp=2700000.
-// Saved 7.3, 720.0, 1.8, 0.3, 16.0, 27.0, 3.0, -2.49, 6.87, 431.03, 0, 0.377923399, -0.17634473,
-#ifdef EXT_ADS1115
-StoreStruct storage =
-{ 
-  CONFIG_VERSION,
-  0, 0, 1, 0,
-  8, 11, 19, 8, 22, 20,
-  30000,
-  1800000, 1800000, 0, 0,
-  7.3, 720.0, 1.8, 0.3, 16.0, 27.0, 3.0, -2.50133333, 6.9, 431.03, 0, 0.377923399, -0.17634473,
-  2700000.0, 0.0, 0.0, 18000.0, 0.0, 0.0, 0.0, 0.0, 28.0, 7.3, 720., 1.3,
-  //100.0, 100.0, 20.0, 20.0, 1.5, 1.5,
-  15, 2,  //ajout
-  SWG_MODE_ADJUST, 8,
-  0, 1, 0, 0,
-  0,
-  IPAddress(192,168,0,0), // IP
-  1883,
-  "","",MQTTID,POOLTOPIC,
-  "",
-  587,
-  "", "","","",  
-  0
-};
-#else
-/*StoreStruct storage =
-{ 
-  CONFIG_VERSION,
-  0, 0, 1, 0,
-  13, 8, 21, 8, 22, 20,
-  30000,
-  1800000, 1800000, 0, 0,
-  7.3, 720.0, 1.8, 0.7, 10.0, 18.0, 3.0, 0.9583, 4.834, 129.2, 384.1, 1.31, -0.1,
-  2700000.0, 0.0, 0.0, 18000.0, 0.0, 0.0, 0.0, 0.0, 28.0, 7.3, 720., 1.3,
-  //25.0, 60.0, 20.0, 20.0, 1.5, 1.5,
-  15, 2,  //ajout
-  SWG_MODE_ADJUST, 8,
-  0, 1, 0, 0,
-  0,
-  IPAddress(192,168,0,0), // IP
-  1883,
-  "","",MQTTID,POOLTOPIC,
-  "",
-  587,
-  "", "","","",  
-  0
-};*/
-#endif
 tm timeinfo;
 
 RunTimeData PMData =
@@ -110,6 +59,7 @@ bool PoolMaster_MQTTReady = false;      // Is MQTT Connected
 bool PoolMaster_NTPReady = false;      // Is NTP Connected
 bool PoolMaster_FullyLoaded = false;      // At startup gives time for everything to start before exiting Nextion's splash screen
 
+bool EXT_ADS1115 = false;           // by default, use analog pH/Orp
 
 // Queue object to store incoming JSON commands (up to 10)
 QueueHandle_t queueIn;
@@ -272,6 +222,15 @@ void setup()
       if(saveConfig()) Debug.print(DBG_INFO,"Config saved");  //First time use. Save new default values to NVS
   }  
 */
+
+  // Start I2C for ADS1115 and status lights through PCF8574A
+  Wire.begin(I2C_SDA,I2C_SCL);
+
+  Wire.beginTransmission(EXT_ADS1115_ADDR); // search for loulou board
+  if (Wire.endTransmission() == 0)
+        EXT_ADS1115 = true;
+  else  EXT_ADS1115 = false;
+
   // Initialize configuration manager
   // List of parameters are in PoolMaster.h, in the ParamID enum
   // Please update the list if you add new parameters
@@ -293,19 +252,22 @@ void setup()
   PMConfig.initParam(PSI_MEDTHRESHOLD,    "PSIMed",                 (double)0.25);
   PMConfig.initParam(WATERTEMPLOWTHRESHOLD,"WaterTempLow",          (double)10.0);
   PMConfig.initParam(WATERTEMP_SETPOINT,  "WaterTempSet",           (double)27.0);
-  #ifdef EXT_ADS1115
+  if (EXT_ADS1115) {
     PMConfig.initParam(PHCALIBCOEFFS0,      "pHCalibCoeffs0",         (double)-2.50133333);
     PMConfig.initParam(PHCALIBCOEFFS1,      "pHCalibCoeffs1",         (double)6.9);
     PMConfig.initParam(ORPCALIBCOEFFS0,     "OrpCalibCoeffs0",        (double)431.03);
     PMConfig.initParam(ORPCALIBCOEFFS1,     "OrpCalibCoeffs1",        (double)0.0);
-  #else
+  }
+  else {
     PMConfig.initParam(PHCALIBCOEFFS0,      "pHCalibCoeffs0",         (double)0.9583);
     PMConfig.initParam(PHCALIBCOEFFS1,      "pHCalibCoeffs1",         (double)4.834);
     PMConfig.initParam(ORPCALIBCOEFFS0,     "OrpCalibCoeffs0",        (double)129.2);
     PMConfig.initParam(ORPCALIBCOEFFS1,     "OrpCalibCoeffs1",        (double)384.1);
-  #endif
-  PMConfig.initParam(PSICALIBCOEFFS0,     "PSICalibCoeffs0",        (double)0.377923399);
-  PMConfig.initParam(PSICALIBCOEFFS1,     "PSICalibCoeffs1",        (double)-0.17634473);
+  }
+  //PMConfig.initParam(PSICALIBCOEFFS0,     "PSICalibCoeffs0",        (double)0.377923399);
+  //PMConfig.initParam(PSICALIBCOEFFS1,     "PSICalibCoeffs1",        (double)-0.17634473);
+  PMConfig.initParam(PSICALIBCOEFFS0,     "PSICalibCoeffs0",        (double)2.11764);
+  PMConfig.initParam(PSICALIBCOEFFS1,     "PSICalibCoeffs1",        (double)-0.504);
   PMConfig.initParam(PH_KP,               "PhKp",                   (double)2000000.0);
   PMConfig.initParam(PH_KI,               "PhKi",                   (double)0.0);
   PMConfig.initParam(PH_KD,               "PhKd",                   (double)0.0);
@@ -415,9 +377,6 @@ void setup()
     Serial.print(".");
   }
   
-  // Start I2C for ADS1115 and status lights through PCF8574A
-  Wire.begin(I2C_SDA,I2C_SCL);
-
   // Init pH, ORP and PSI analog measurements
   AnalogInit();
 
